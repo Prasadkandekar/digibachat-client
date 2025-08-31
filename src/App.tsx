@@ -4,10 +4,15 @@ import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import AuthModal from './components/AuthModal';
 import Header from './components/Header';
+import ResetPassword from './components/ResetPassword';
 
 const AppContent: React.FC = () => {
   const location = useLocation();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Check if user is already authenticated on app load
+    const token = localStorage.getItem('authToken');
+    return !!token;
+  });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
 
@@ -21,12 +26,16 @@ const AppContent: React.FC = () => {
     setShowAuthModal(true);
   };
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = (token?: string) => {
+    if (token) {
+      localStorage.setItem('authToken', token);
+    }
     setIsAuthenticated(true);
     setShowAuthModal(false);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('authToken');
     setIsAuthenticated(false);
   };
 
@@ -51,6 +60,10 @@ const AppContent: React.FC = () => {
             <Navigate to="/dashboard" /> : 
             <LandingPage onSignIn={handleSignIn} onSignUp={handleSignUp} />
           } 
+        />
+        <Route 
+          path="/reset-password" 
+          element={<ResetPassword />}
         />
         <Route 
           path="/dashboard/*" 
