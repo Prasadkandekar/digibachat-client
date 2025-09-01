@@ -19,6 +19,7 @@ import {
   History,
   HelpCircle
 } from 'lucide-react';
+import { apiService, CreateGroupData } from '../services/api';
 
 // Import tab components
 import DashboardHome from '../components/dashboard/DashboardHome';
@@ -37,20 +38,29 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showExitGroupModal, setShowExitGroupModal] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const [selectedGroup, setSelectedGroup] = useState('');
   const [groupCode, setGroupCode] = useState('');
-  const [newGroupData, setNewGroupData] = useState({
+  const [newGroupData, setNewGroupData] = useState<CreateGroupData>({
     name: '',
     description: '',
-    contributionAmount: '',
+    contributionAmount: 0,
     frequency: 'monthly'
   });
+  const [groups, setGroups] = useState<any[]>([]);
 
-  const groups = [
-    { id: '1', name: 'Family Savings', members: 8, balance: '₹15,420', nextPayment: '₹2,000', code: 'FAM001' },
-    { id: '2', name: 'Friends Fund', members: 5, balance: '₹7,830', nextPayment: '₹1,500', code: 'FRD002' },
-    { id: '3', name: 'Office Group', members: 12, balance: '₹2,180', nextPayment: '₹3,000', code: 'OFF003' },
-  ];
+  React.useEffect(() => {
+      const fetchGroups = async () => {
+          try {
+              const res = await apiService.getUserGroups();
+              if(res.success) {
+                  setGroups(res.data)
+              }
+          } catch (error) {
+              console.error(error)
+          }
+      }
+      fetchGroups();
+  }, [])
 
   const sidebarItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard', active: location.pathname === '/dashboard' },
@@ -61,25 +71,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     { icon: HelpCircle, label: 'Help', path: '/dashboard/help', active: false },
   ];
 
-  const handleJoinGroup = () => {
-    // TODO: Backend integration - POST /api/groups/join
-    console.log('Backend Integration: Join Group', { groupCode });
-    setShowJoinGroupModal(false);
-    setGroupCode('');
+  const handleJoinGroup = async () => {
+    try {
+      await apiService.joinGroup(groupCode);
+      setShowJoinGroupModal(false);
+      setGroupCode('');
+      // Optionally refresh groups list
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleCreateGroup = () => {
-    // TODO: Backend integration - POST /api/groups/create
-    console.log('Backend Integration: Create Group', newGroupData);
-    setShowCreateGroupModal(false);
-    setNewGroupData({ name: '', description: '', contributionAmount: '', frequency: 'monthly' });
+  const handleCreateGroup = async () => {
+    try {
+      await apiService.createGroup(newGroupData);
+      setShowCreateGroupModal(false);
+      setNewGroupData({ name: '', description: '', contributionAmount: 0, frequency: 'monthly' });
+      // Optionally refresh groups list
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleExitGroup = () => {
-    // TODO: Backend integration - DELETE /api/groups/{groupId}/leave
-    console.log('Backend Integration: Exit Group', { groupId: selectedGroup });
-    setShowExitGroupModal(false);
-    setSelectedGroup('');
+  const handleExitGroup = async () => {
+    try {
+      await apiService.leaveGroup(selectedGroup);
+      setShowExitGroupModal(false);
+      setSelectedGroup('');
+      // Optionally refresh groups list
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const getPageTitle = () => {
@@ -208,33 +230,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         <div className="p-4 sm:p-6 lg:p-8">
           <Routes>
             <Route index element={<DashboardHome />} />
-            <Route path="groups" element={<MyGroups groups={groups} />} />
+            <Route path="groups" element={<MyGroups />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="settings" element={<SettingsTab />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
-
-          {/* Backend Integration Note */}
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-            <h4 className="text-lg font-semibold text-blue-900 mb-2">
-              Backend Integration Ready
-            </h4>
-            <p className="text-blue-800 mb-4">
-              This dashboard is prepared for backend integration with the following API endpoints:
-            </p>
-            <div className="bg-white rounded-lg p-4 font-mono text-sm">
-              <div className="space-y-2">
-                <div>• <strong>GET</strong> /api/dashboard/stats - Fetch user statistics</div>
-                <div>• <strong>GET</strong> /api/groups - Fetch user's savings groups</div>
-                <div>• <strong>GET</strong> /api/transactions - Fetch recent transactions</div>
-                <div>• <strong>POST</strong> /api/groups/join - Join a savings group</div>
-                <div>• <strong>POST</strong> /api/groups/create - Create new group</div>
-                <div>• <strong>DELETE</strong> /api/groups/{'{groupId}'}/leave - Exit group</div>
-                <div>• <strong>POST</strong> /api/transactions - Create new transaction</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -328,7 +329,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 <input
                   type="number"
                   value={newGroupData.contributionAmount}
-                  onChange={(e) => setNewGroupData({...newGroupData, contributionAmount: e.target.value})}
+                  onChange={(e) => setNewGroupData({...newGroupData, contributionAmount: Number(e.target.value)})}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   placeholder="Monthly contribution amount"
                 />
@@ -339,7 +340,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 </label>
                 <select
                   value={newGroupData.frequency}
-                  onChange={(e) => setNewGroupData({...newGroupData, frequency: e.target.value})}
+                  onChange={(e) => setNewGroupData({...newGroupData, frequency: e.target.value as 'weekly' | 'monthly' | 'quarterly'})}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 >
                   <option value="weekly">Weekly</option>
@@ -383,7 +384,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 >
                   <option value="">Choose a group</option>
                   {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
+                    <option key={group._id} value={group._id}>
                       {group.name}
                     </option>
                   ))}

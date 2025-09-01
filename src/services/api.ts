@@ -1,8 +1,7 @@
 // src/services/api.ts
 const API_BASE_URL = 'https://digibachat.onrender.com/api/auth';
 const PASSWORD_API_BASE_URL = 'https://digibachat.onrender.com/api/password';
-// const API_BASE_URL = 'http://localhost:5000/api/auth';
-// const PASSWORD_API_BASE_URL = 'http://localhost:5000/api/password';
+const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
 
 export interface LoginData {
   email: string;
@@ -28,6 +27,13 @@ export interface ResetPasswordData {
   token?: string;
 }
 
+export interface CreateGroupData {
+  name: string;
+  description: string;
+  contributionAmount: number;
+  frequency: 'weekly' | 'monthly' | 'quarterly';
+}
+
 export interface ApiResponse {
   success: boolean;
   message: string;
@@ -36,11 +42,14 @@ export interface ApiResponse {
 }
 
 class ApiService {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+  private async request<T>(baseUrl: string, endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${baseUrl}${endpoint}`;
+    const token = localStorage.getItem('token');
+    
     const defaultOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       },
     };
@@ -53,7 +62,6 @@ class ApiService {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      // Ensure consistent response format
       if (data && typeof data === 'object' && !data.hasOwnProperty('success')) {
         data.success = true;
       }
@@ -64,78 +72,104 @@ class ApiService {
     }
   }
 
+  // Auth
   async login(credentials: LoginData): Promise<ApiResponse> {
-    return this.request('/login', {
+    return this.request(API_BASE_URL, '/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
   }
 
   async register(userData: RegisterData): Promise<ApiResponse> {
-    return this.request('/register', {
+    return this.request(API_BASE_URL, '/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
   async verifyEmail(verifyData: VerifyEmailData): Promise<ApiResponse> {
-    return this.request('/verify-email', {
+    return this.request(API_BASE_URL, '/verify-email', {
       method: 'POST',
       body: JSON.stringify(verifyData),
     });
   }
 
   async resendOtp(email: string): Promise<ApiResponse> {
-    return this.request('/resend-otp', {
+    return this.request(API_BASE_URL, '/resend-otp', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
   }
 
+  // Password
   async forgotPassword(email: string): Promise<ApiResponse> {
-    const url = `${PASSWORD_API_BASE_URL}/forgot-password`;
-    const response = await fetch(url, {
+    return this.request(PASSWORD_API_BASE_URL, '/forgot-password', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({ email }),
     });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
-    }
-    
-    if (data && typeof data === 'object' && !data.hasOwnProperty('success')) {
-      data.success = true;
-    }
-    
-    return data;
   }
 
   async resetPassword(resetData: ResetPasswordData): Promise<ApiResponse> {
-    const url = `${PASSWORD_API_BASE_URL}/reset-password`;
-    const response = await fetch(url, {
+    return this.request(PASSWORD_API_BASE_URL, '/reset-password', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(resetData),
     });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
+  }
+  
+  // Groups
+  async createGroup(groupData: CreateGroupData): Promise<ApiResponse> {
+    return this.request(GROUP_API_BASE_URL, '/', {
+      method: 'POST',
+      body: JSON.stringify(groupData),
+    });
+  }
+  
+  async getUserGroups(): Promise<ApiResponse> {
+    return this.request(GROUP_API_BASE_URL, '/my-groups', {
+        method: 'GET'
+    });
+  }
+
+  async joinGroup(groupCode: string): Promise<ApiResponse> {
+    return this.request(GROUP_API_BASE_URL, `/join/${groupCode}`, {
+      method: 'POST',
+    });
+  }
+
+  async getGroup(groupId: string): Promise<ApiResponse> {
+    return this.request(GROUP_API_BASE_URL, `/${groupId}`, {
+        method: 'GET'
+    });
+  }
+
+  async getJoinRequests(groupId: string): Promise<ApiResponse> {
+    return this.request(GROUP_API_BASE_URL, `/${groupId}/join-requests`, {
+        method: 'GET'
+    });
+  }
+
+  async approveJoinRequest(groupId: string, requestId: string): Promise<ApiResponse> {
+    return this.request(GROUP_API_BASE_URL, `/${groupId}/join-requests/${requestId}/approve`, {
+      method: 'POST',
+    });
+  }
+
+  async rejectJoinRequest(groupId: string, requestId: string): Promise<ApiResponse> {
+    return this.request(GROUP_API_BASE_URL, `/${groupId}/join-requests/${requestId}/reject`, {
+      method: 'POST',
+    });
+  }
+  
+  async removeMember(groupId: string, userId: string): Promise<ApiResponse> {
+      return this.request(GROUP_API_BASE_URL, `/${groupId}/members/${userId}`, {
+          method: 'DELETE'
+        });
     }
-    
-    if (data && typeof data === 'object' && !data.hasOwnProperty('success')) {
-      data.success = true;
-    }
-    
-    return data;
+
+  async leaveGroup(groupId: string): Promise<ApiResponse> {
+    return this.request(GROUP_API_BASE_URL, `/${groupId}/leave`, {
+      method: 'DELETE',
+    });
   }
 }
 
