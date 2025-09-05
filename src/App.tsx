@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
+import JoinGroupPage from './pages/JoinGroupPage';
 import AuthModal from './components/AuthModal';
 import Header from './components/Header';
 import ResetPassword from './components/ResetPassword';
@@ -66,6 +67,10 @@ const AppContent: React.FC = () => {
         <Route 
           path="/reset-password" 
           element={<ResetPassword />}
+        />
+        <Route 
+          path="/join/:groupCode"
+          element={<JoinGroupPage />}
         />
         <Route 
           path="/dashboard/*" 
