@@ -4,6 +4,11 @@ const PASSWORD_API_BASE_URL = 'https://digibachat.onrender.com/api/password';
 const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
 const TRANSACTION_API_BASE_URL = 'https://digibachat.onrender.com/api/transactions';
 
+// const API_BASE_URL = 'http://localhost:5000/api/auth';
+// const PASSWORD_API_BASE_URL = 'http://localhost:5000/api/password';
+// const GROUP_API_BASE_URL = 'http://localhost:5000/api/groups';
+// const TRANSACTION_API_BASE_URL = 'http://localhost:5000/api/transactions';
+
 export interface LoginData {
   email: string;
   password: string;
@@ -58,6 +63,9 @@ export interface GroupMember {
   joined_at: string;
   is_leader: boolean;
   current_balance: number;
+  status: 'approved' | 'pending';
+  user_name: string;
+  user_email: string;
 }
 
 export interface CreateGroupData {
@@ -419,6 +427,12 @@ class ApiService {
   logout(): void {
     localStorage.removeItem('token');
     console.log('User logged out, token removed');
+  }
+
+  async getCurrentUser(): Promise<ApiResponse<LoginResponseData>> {
+    return this.request<ApiResponse<LoginResponseData>>(API_BASE_URL, '/me', {
+      method: 'GET'
+    });
   }
 
   // Utility method to get token

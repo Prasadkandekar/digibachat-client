@@ -33,12 +33,25 @@ const DashboardHome: React.FC = () => {
   const [selectedGroupForModal, setSelectedGroupForModal] = useState<Group | null>(null);
   const [totalSavings, setTotalSavings] = useState(0);
   const [actualTotalSavings, setActualTotalSavings] = useState(0);
+  const [userName, setUserName] = useState('');
   const toast = useToast();
 
   useEffect(() => {
     loadUserGroups();
     loadActualTotalSavings();
+    loadUserName();
   }, []);
+
+  const loadUserName = async () => {
+    try {
+      const response = await apiService.getCurrentUser();
+      if (response.success && response.data) {
+        setUserName(response.data.name);
+      }
+    } catch (error) {
+      console.error('Failed to load user name:', error);
+    }
+  };
 
   const loadUserGroups = async () => {
     try {
@@ -169,7 +182,9 @@ const DashboardHome: React.FC = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Savings Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {userName ? `Welcome back, ${userName}!` : 'Savings Dashboard'}
+        </h1>
         <p className="text-gray-600">Manage your savings groups and track your progress</p>
       </div>
 

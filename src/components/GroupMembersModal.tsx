@@ -10,10 +10,9 @@ interface GroupMembersModalProps {
 }
 
 interface MemberWithDetails extends GroupMember {
-  name: string;
-  email: string;
+  user_name: string;
+  user_email: string;
   role: 'leader' | 'member';
-  status: 'approved' | 'pending';
 }
 
 const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
@@ -39,14 +38,9 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
       
       const response = await apiService.getGroupMembers(groupId);
       if (response.success && response.data?.members) {
-        // Mock additional user details since we don't have them from the API
-        // In a real app, you'd get this from the API response
-        const membersWithDetails = response.data.members.map((member, index) => ({
+        const membersWithDetails = response.data.members.map(member => ({
           ...member,
-          name: `Member ${index + 1}`, // Replace with actual name from API
-          email: `member${index + 1}@example.com`, // Replace with actual email
-          role: member.is_leader ? 'leader' : 'member' as 'leader' | 'member',
-          status: 'approved' as 'approved' | 'pending' // Replace with actual status
+          role: member.is_leader ? 'leader' as const : 'member' as const
         }));
         setMembers(membersWithDetails);
       }
@@ -134,11 +128,11 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
-                            {member.name.charAt(0).toUpperCase()}
+                            {member.user_name ? member.user_name.charAt(0).toUpperCase() : '?'}
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <h4 className="font-medium text-gray-900">{member.name}</h4>
+                              <h4 className="font-medium text-gray-900">{member.user_name || 'Unknown User'}</h4>
                               {member.role === 'leader' && (
                                 <div className="flex items-center space-x-1 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
                                   <Crown className="w-3 h-3" />
@@ -153,7 +147,7 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
                                 {member.status === 'approved' ? 'Active' : 'Pending'}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-500">{member.email}</p>
+                            <p className="text-sm text-gray-500">{member.user_email || 'No email provided'}</p>
                           </div>
                         </div>
                         
