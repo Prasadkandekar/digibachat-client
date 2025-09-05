@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Users, Search } from 'lucide-react';
-import { apiService } from '../services/api';
+import { groupService } from '../services/groupService';
 
 interface JoinGroupModalProps {
   isOpen: boolean;
@@ -25,12 +25,13 @@ const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ isOpen, onClose, onSucc
     }
 
     try {
-      const response = await apiService.joinGroup(groupCode.trim().toUpperCase());
-      if (response.success) {
-        setGroupCode('');
-        onSuccess();
-      } else {
-        setError(response.message || 'Failed to join group');
+      const result = await groupService.joinGroup(groupCode.trim().toUpperCase());
+      setGroupCode('');
+      onSuccess();
+      
+      // Display a success message if the group requires approval
+      if (result.requires_approval) {
+        setError('Join request sent successfully. Waiting for leader approval.');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join group');

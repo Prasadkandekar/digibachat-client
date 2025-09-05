@@ -114,49 +114,96 @@ export interface JoinGroupResponseData {
 }
 
 class ApiService {
-   async request<T extends ApiResponse>(baseUrl: string, endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${baseUrl}${endpoint}`;
-    console.log('Preparing request to:', url);
-    const token = localStorage.getItem('token');
-    console.log('Retrieved token:', token ? token.substring(0, 20) + '...' : 'No token found');
-    console.log('Making request to:', url);
-    console.log('Token exists:', !!token);
+  async request<T extends ApiResponse>(
+  baseUrl: string,
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${baseUrl}${endpoint}`;
+  const token = localStorage.getItem('token');
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...(options.headers as HeadersInit),
-    };
-    console.log('Request headers:', headers);
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(options.headers as HeadersInit),
+  };
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+
+    const text = await response.text(); // get raw response
+    let data: any;
 
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-          credentials: 'include',
-      });
-      
-      console.log('Response status:', response.status);
-
-      // Handle unauthorized responses
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        throw new Error('Access denied. No token provided.');
-      }
-
-      const data: T = await response.json();
-      console.log('Response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('API Request Error:', error);
-      throw error;
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      // Not JSON → wrap in an object
+      data = { success: false, message: text };
     }
+
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      throw new Error('Access denied. No token provided.');
+    }
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP ${response.status}: ${text}`);
+    }
+
+    return data as T;
+  } catch (error) {
+    console.error('API Request Error:', error);
+    throw error;
   }
+}
+
+  //  async request<T extends ApiResponse>(baseUrl: string, endpoint: string, options: RequestInit = {}): Promise<T> {
+  //   const url = `${baseUrl}${endpoint}`;
+  //   console.log('Preparing request to:', url);
+  //   const token = localStorage.getItem('token');
+  //   console.log('Retrieved token:', token ? token.substring(0, 20) + '...' : 'No token found');
+  //   console.log('Making request to:', url);
+  //   console.log('Token exists:', !!token);
+
+  //   const headers: HeadersInit = {
+  //     'Content-Type': 'application/json',
+  //     ...(token && { 'Authorization': `Bearer ${token}` }),
+  //     ...(options.headers as HeadersInit),
+  //   };
+  //   console.log('Request headers:', headers);
+
+  //   try {
+  //     const response = await fetch(url, {
+  //       ...options,
+  //       headers,
+  //         credentials: 'include',
+  //     });
+      
+  //     console.log('Response status:', response.status);
+
+  //     // Handle unauthorized responses
+  //     if (response.status === 401) {
+  //       localStorage.removeItem('token');
+  //       throw new Error('Access denied. No token provided.');
+  //     }
+
+  //     const data: T = await response.json();
+  //     console.log('Response data:', data);
+
+  //     if (!response.ok) {
+  //       throw new Error(data.message || 'Something went wrong');
+  //     }
+
+  //     return data;
+  //   } catch (error) {
+  //     console.error('API Request Error:', error);
+  //     throw error;
+  //   }
+  // }
 
   // Auth
   async login(credentials: LoginData): Promise<ApiResponse<LoginResponseData>> {
@@ -266,7 +313,7 @@ class ApiService {
 
   async joinGroup(groupCode: string): Promise<ApiResponse<JoinGroupResponseData>> {
     return this.request<ApiResponse<JoinGroupResponseData>>(GROUP_API_BASE_URL, `/join/${groupCode}`, {
-      method: 'POST',
+      method: 'POST'
     });
   }
 
