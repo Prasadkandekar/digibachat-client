@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import AuthModal from './components/AuthModal';
 import Header from './components/Header';
 import ResetPassword from './components/ResetPassword';
+import { ToastProvider } from './contexts/ToastContext';
+import ToastContainer from './components/ToastContainer';
 
 const AppContent: React.FC = () => {
   const location = useLocation();
@@ -83,15 +85,19 @@ const AppContent: React.FC = () => {
           onModeSwitch={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
         />
       )}
+      
+      <ToastContainer />
     </div>
   );
 };
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <ToastProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </ToastProvider>
   );
 }
 

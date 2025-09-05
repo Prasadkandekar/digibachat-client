@@ -1,12 +1,9 @@
 import React from 'react';
 
 interface JoinRequest {
-  _id: string;
-  user: {
-    _id: string;
-    name: string;
-    email: string;
-  };
+  id: number;
+  user_name: string;
+  user_email: string;
   status: string;
 }
 
@@ -25,20 +22,20 @@ const JoinRequests: React.FC<JoinRequestsProps> = ({ requests, onApprove, onReje
     <div className="space-y-4">
       <h4 className="font-medium text-gray-900 mb-2">Join Requests</h4>
       {requests.map((request) => (
-        <div key={request._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div key={request.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div>
-            <p className="font-medium text-gray-900">{request.user.name}</p>
-            <p className="text-sm text-gray-500">{request.user.email}</p>
+            <p className="font-medium text-gray-900">{request.user_name}</p>
+            <p className="text-sm text-gray-500">{request.user_email}</p>
           </div>
           <div className="flex space-x-2">
             <button
-              onClick={() => onApprove(request._id)}
+              onClick={() => onApprove(request.id.toString())}
               className="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
             >
               Approve
             </button>
             <button
-              onClick={() => onReject(request._id)}
+              onClick={() => onReject(request.id.toString())}
               className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
             >
               Reject

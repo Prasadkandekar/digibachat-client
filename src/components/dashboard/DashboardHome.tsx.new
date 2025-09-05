@@ -3,7 +3,6 @@ import {
   PiggyBank, 
   Users, 
   Plus, 
-  UserPlus,
   Search,
   Calendar,
   ArrowDownLeft
@@ -13,11 +12,6 @@ import { groupService } from '../../services/groupService';
 import CreateGroupModal from '../CreateGroupModal';
 import JoinGroupModal from '../JoinGroupModal';
 import ContributeModal from '../ContributeModal';
-import GroupMembersModal from '../GroupMembersModal';
-import GroupHistoryModal from '../GroupHistoryModal';
-import InviteMembersModal from '../InviteMembersModal';
-import { useToast } from '../../contexts/ToastContext';
-import { apiService } from '../../services/api';
 
 const DashboardHome: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -26,18 +20,11 @@ const DashboardHome: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
-  const [showMembersModal, setShowMembersModal] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedGroupForContribution, setSelectedGroupForContribution] = useState<Group | null>(null);
-  const [selectedGroupForModal, setSelectedGroupForModal] = useState<Group | null>(null);
   const [totalSavings, setTotalSavings] = useState(0);
-  const [actualTotalSavings, setActualTotalSavings] = useState(0);
-  const toast = useToast();
 
   useEffect(() => {
     loadUserGroups();
-    loadActualTotalSavings();
   }, []);
 
   const loadUserGroups = async () => {
@@ -46,50 +33,23 @@ const DashboardHome: React.FC = () => {
       const userGroups = await groupService.getMyGroups();
       setGroups(userGroups);
       
-      // Calculate total savings across all groups (actual contributed amounts)
-      // Note: This shows monthly contribution amounts. For actual savings, we'd need member balance data
-      const savings = userGroups.reduce((total: number, group: Group) => {
-        // Ensure we're working with numbers, not strings
-        const amount = typeof group.savings_amount === 'string' 
-          ? parseFloat(group.savings_amount) || 0
-          : (group.savings_amount || 0);
-        return total + amount;
-      }, 0);
+      // Calculate total savings across all groups
+      const savings = userGroups.reduce((total: number, group: Group) => total + (group.savings_amount || 0), 0);
       setTotalSavings(savings);
     } catch (error) {
       console.error('Failed to load groups:', error);
-      toast.error('Failed to load your groups. Please refresh the page.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadActualTotalSavings = async () => {
-    try {
-      const response = await apiService.getUserTotalSavings();
-      if (response.success && response.data) {
-        setActualTotalSavings(response.data.total_savings);
-      }
-    } catch (error) {
-      console.error('Failed to load actual total savings:', error);
-      // Don't show error toast for this as it's not critical
     }
   };
 
   const stats = [
     {
       title: 'Total Savings',
-      value: `₹${actualTotalSavings.toLocaleString()}`,
-      icon: PiggyBank,
-      color: 'bg-green-500',
-      description: 'Actual amount saved'
-    },
-    {
-      title: 'Monthly Commitments',
       value: `₹${totalSavings.toLocaleString()}`,
       icon: PiggyBank,
-      color: 'bg-teal-500',
-      description: 'Total monthly contributions'
+      color: 'bg-green-500',
+      description: 'Across all groups'
     },
     {
       title: 'Groups Joined',
@@ -99,43 +59,40 @@ const DashboardHome: React.FC = () => {
       description: 'Active savings groups'
     },
     {
+      title: 'Join New Group',
+      value: 'Connect',
+      icon: Plus,
+      color: 'bg-purple-500',
+      description: 'Enter group code',
+      action: () => setShowJoinModal(true)
+    },
+    {
       title: 'Create Group',
       value: 'Start',
       icon: Plus,
       color: 'bg-orange-500',
       description: 'New savings group',
       action: () => setShowCreateModal(true)
-    },
-    {
-      title: 'Join Group',
-      value: 'Enter Code',
-      icon: UserPlus,
-      color: 'bg-purple-500',
-      description: 'Join existing group',
-      action: () => setShowJoinModal(true)
     }
   ];
 
-  const handleCreateGroupSuccess = async () => {
+  const handleCreateGroup = async (groupData: any) => {
     try {
+      await groupService.createGroup(groupData);
       await loadUserGroups();
-      await loadActualTotalSavings();
       setShowCreateModal(false);
-      toast.success('Group created successfully!');
     } catch (error) {
-      console.error('Failed to refresh data:', error);
+      console.error('Failed to create group:', error);
     }
   };
 
   const handleJoinGroup = async (groupCode: string) => {
     try {
-      const result = await groupService.joinGroup(groupCode);
+      await groupService.joinGroup(groupCode);
       await loadUserGroups();
       setShowJoinModal(false);
-      toast.success(result.message || 'Successfully joined the group!');
     } catch (error) {
       console.error('Failed to join group:', error);
-      toast.error('Failed to join group. Please check the group code and try again.');
     }
   };
 
@@ -146,13 +103,9 @@ const DashboardHome: React.FC = () => {
       await groupService.makeContribution(selectedGroupForContribution.id, paymentMethod);
       await loadUserGroups();
       setShowContributeModal(false);
-      const groupName = selectedGroupForContribution.name;
-      const amount = selectedGroupForContribution.savings_amount;
       setSelectedGroupForContribution(null);
-      toast.success(`Contribution of ₹${amount} to "${groupName}" processed successfully!`);
     } catch (error) {
       console.error('Failed to process contribution:', error);
-      toast.error('Failed to process contribution. Please try again.');
       throw error;
     }
   };
@@ -272,34 +225,13 @@ const DashboardHome: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Action Buttons - First Row */}
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      <button 
-                        className="bg-purple-100 text-purple-700 px-3 py-2 rounded text-sm hover:bg-purple-200 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGroupForModal(group);
-                          setShowHistoryModal(true);
-                        }}
-                      >
+                    {/* Action Buttons */}
+                    <div className="flex space-x-2">
+                      <button className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200">
                         View History
                       </button>
                       <button 
-                        className="bg-blue-100 text-blue-700 px-3 py-2 rounded text-sm hover:bg-blue-200 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGroupForModal(group);
-                          setShowMembersModal(true);
-                        }}
-                      >
-                        Show Members
-                      </button>
-                    </div>
-                    
-                    {/* Action Buttons - Second Row */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button 
-                        className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded text-sm hover:bg-indigo-200 transition-colors"
+                        className="flex-1 bg-blue-100 text-blue-700 px-3 py-2 rounded text-sm hover:bg-blue-200"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedGroupForContribution(group);
@@ -308,14 +240,7 @@ const DashboardHome: React.FC = () => {
                       >
                         Add Contribution
                       </button>
-                      <button 
-                        className="bg-green-100 text-green-700 px-3 py-2 rounded text-sm hover:bg-green-200 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGroupForModal(group);
-                          setShowInviteModal(true);
-                        }}
-                      >
+                      <button className="flex-1 bg-green-100 text-green-700 px-3 py-2 rounded text-sm hover:bg-green-200">
                         Invite Members
                       </button>
                     </div>
@@ -336,17 +261,19 @@ const DashboardHome: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <CreateGroupModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={handleCreateGroupSuccess}
-      />
+      {showCreateModal && (
+        <CreateGroupModal
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={handleCreateGroup}
+        />
+      )}
 
-      <JoinGroupModal
-        isOpen={showJoinModal}
-        onClose={() => setShowJoinModal(false)}
-        onSuccess={handleCreateGroupSuccess}
-      />
+      {showJoinModal && (
+        <JoinGroupModal
+          onClose={() => setShowJoinModal(false)}
+          onSubmit={handleJoinGroup}
+        />
+      )}
 
       {showContributeModal && selectedGroupForContribution && (
         <ContributeModal
@@ -357,46 +284,6 @@ const DashboardHome: React.FC = () => {
           onSubmit={handleContribution}
           amount={selectedGroupForContribution.savings_amount}
           groupName={selectedGroupForContribution.name}
-        />
-      )}
-
-      {/* Group Members Modal */}
-      {selectedGroupForModal && (
-        <GroupMembersModal
-          isOpen={showMembersModal}
-          onClose={() => {
-            setShowMembersModal(false);
-            setSelectedGroupForModal(null);
-          }}
-          groupId={selectedGroupForModal.id.toString()}
-          groupName={selectedGroupForModal.name}
-        />
-      )}
-
-      {/* Group History Modal */}
-      {selectedGroupForModal && (
-        <GroupHistoryModal
-          isOpen={showHistoryModal}
-          onClose={() => {
-            setShowHistoryModal(false);
-            setSelectedGroupForModal(null);
-          }}
-          groupId={selectedGroupForModal.id.toString()}
-          groupName={selectedGroupForModal.name}
-        />
-      )}
-
-      {/* Invite Members Modal */}
-      {selectedGroupForModal && (
-        <InviteMembersModal
-          isOpen={showInviteModal}
-          onClose={() => {
-            setShowInviteModal(false);
-            setSelectedGroupForModal(null);
-          }}
-          groupId={selectedGroupForModal.id.toString()}
-          groupName={selectedGroupForModal.name}
-          groupCode={selectedGroupForModal.group_code}
         />
       )}
     </div>

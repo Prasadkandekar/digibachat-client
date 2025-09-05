@@ -1,121 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   IndianRupee, 
   Filter, 
-  Download, 
+  Download,
   Search, 
   Calendar,
   ArrowUpRight,
   ArrowDownLeft,
   Clock
 } from 'lucide-react';
+import { groupService } from '../../services/groupService';
 
 const Transactions: React.FC = () => {
   const [filterType, setFilterType] = useState('all');
   const [filterGroup, setFilterGroup] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState('30days');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState<string[]>([]);
 
-  const transactions = [
-    {
-      id: 'TXN001',
-      type: 'deposit',
-      amount: 2000,
-      group: 'Family Savings',
-      description: 'Monthly contribution',
-      date: '2025-01-15',
-      time: '10:30 AM',
-      status: 'completed',
-      paymentMethod: 'UPI',
-      transactionId: 'UPI123456789'
-    },
-    {
-      id: 'TXN002',
-      type: 'withdrawal',
-      amount: 1500,
-      group: 'Friends Fund',
-      description: 'Emergency withdrawal',
-      date: '2025-01-13',
-      time: '02:15 PM',
-      status: 'completed',
-      paymentMethod: 'Bank Transfer',
-      transactionId: 'BT987654321'
-    },
-    {
-      id: 'TXN003',
-      type: 'deposit',
-      amount: 3000,
-      group: 'Office Group',
-      description: 'Monthly contribution',
-      date: '2025-01-12',
-      time: '09:45 AM',
-      status: 'completed',
-      paymentMethod: 'UPI',
-      transactionId: 'UPI456789123'
-    },
-    {
-      id: 'TXN004',
-      type: 'deposit',
-      amount: 2000,
-      group: 'Family Savings',
-      description: 'Monthly contribution',
-      date: '2025-01-10',
-      time: '11:20 AM',
-      status: 'completed',
-      paymentMethod: 'UPI',
-      transactionId: 'UPI789123456'
-    },
-    {
-      id: 'TXN005',
-      type: 'deposit',
-      amount: 1500,
-      group: 'Friends Fund',
-      description: 'Monthly contribution',
-      date: '2025-01-08',
-      time: '03:30 PM',
-      status: 'completed',
-      paymentMethod: 'UPI',
-      transactionId: 'UPI321654987'
-    },
-    {
-      id: 'TXN006',
-      type: 'loan',
-      amount: 5000,
-      group: 'Family Savings',
-      description: 'Personal loan',
-      date: '2025-01-05',
-      time: '04:45 PM',
-      status: 'pending',
-      paymentMethod: 'Bank Transfer',
-      transactionId: 'BT654321987'
-    },
-    {
-      id: 'TXN007',
-      type: 'deposit',
-      amount: 2500,
-      group: 'Office Group',
-      description: 'Bonus contribution',
-      date: '2025-01-03',
-      time: '12:15 PM',
-      status: 'completed',
-      paymentMethod: 'UPI',
-      transactionId: 'UPI147258369'
-    },
-    {
-      id: 'TXN008',
-      type: 'repayment',
-      amount: 1000,
-      group: 'Friends Fund',
-      description: 'Loan repayment',
-      date: '2025-01-01',
-      time: '06:00 PM',
-      status: 'completed',
-      paymentMethod: 'UPI',
-      transactionId: 'UPI963852741'
-    }
-  ];
+  // Load transactions and groups when component mounts
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [transactionData, groupData] = await Promise.all([
+          groupService.getUserTransactions(),
+          groupService.getMyGroups()
+        ]);
+        setTransactions(transactionData);
+        setGroups(groupData.map(group => group.name));
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const groups = ['Family Savings', 'Friends Fund', 'Office Group'];
+    loadData();
+  }, []);
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesType = filterType === 'all' || transaction.type === filterType;
@@ -124,13 +48,34 @@ const Transactions: React.FC = () => {
       transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.group.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.id.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filter by date range
+    const transactionDate = new Date(transaction.date);
+    const today = new Date();
+    const diffDays = Math.floor((today.getTime() - transactionDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    return matchesType && matchesGroup && matchesSearch;
+    let matchesDate = true;
+    switch (dateRange) {
+      case '7days':
+        matchesDate = diffDays <= 7;
+        break;
+      case '30days':
+        matchesDate = diffDays <= 30;
+        break;
+      case '90days':
+        matchesDate = diffDays <= 90;
+        break;
+      case '1year':
+        matchesDate = diffDays <= 365;
+        break;
+    }
+    
+    return matchesType && matchesGroup && matchesSearch && matchesDate;
   });
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'deposit':
+      case 'contribution':
         return <ArrowDownLeft className="w-5 h-5 text-green-600" />;
       case 'withdrawal':
         return <ArrowUpRight className="w-5 h-5 text-red-600" />;
@@ -145,7 +90,7 @@ const Transactions: React.FC = () => {
 
   const getTransactionColor = (type: string) => {
     switch (type) {
-      case 'deposit':
+      case 'contribution':
         return 'text-green-600';
       case 'withdrawal':
         return 'text-red-600';
@@ -172,13 +117,21 @@ const Transactions: React.FC = () => {
   };
 
   const totalAmount = filteredTransactions.reduce((sum, transaction) => {
-    if (transaction.type === 'deposit' || transaction.type === 'repayment') {
+    if (transaction.type === 'contribution' || transaction.type === 'repayment') {
       return sum + transaction.amount;
     } else if (transaction.type === 'withdrawal' || transaction.type === 'loan') {
       return sum - transaction.amount;
     }
     return sum;
   }, 0);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -187,9 +140,9 @@ const Transactions: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Deposits</p>
+              <p className="text-sm text-gray-600 mb-1">Total Contributions</p>
               <p className="text-2xl font-bold text-green-600">
-                ₹{transactions.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0).toLocaleString()}
+                ₹{transactions.filter(t => t.type === 'contribution').reduce((sum, t) => sum + t.amount, 0).toLocaleString()}
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -264,7 +217,7 @@ const Transactions: React.FC = () => {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Types</option>
-              <option value="deposit">Deposits</option>
+              <option value="contribution">Contributions</option>
               <option value="withdrawal">Withdrawals</option>
               <option value="loan">Loans</option>
               <option value="repayment">Repayments</option>
@@ -342,7 +295,7 @@ const Transactions: React.FC = () => {
                   </td>
                   <td className="py-4 px-6">
                     <span className={`font-medium ${getTransactionColor(transaction.type)}`}>
-                      {(transaction.type === 'deposit' || transaction.type === 'repayment') ? '+' : '-'}
+                      {(transaction.type === 'contribution' || transaction.type === 'repayment') ? '+' : '-'}
                       ₹{transaction.amount.toLocaleString()}
                     </span>
                   </td>

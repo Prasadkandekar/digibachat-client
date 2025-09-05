@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { 
-  PiggyBank, 
   Users, 
-  TrendingUp, 
-  Calendar, 
-  IndianRupee,
   Bell,
   Settings,
   LogOut,
@@ -17,16 +13,22 @@ import {
   Home,
   BarChart3,
   History,
-  HelpCircle
+  HelpCircle,
+  UserCheck,
+  PiggyBank
 } from 'lucide-react';
-import { apiService, CreateGroupData } from '../services/api';
+import { apiService } from '../services/api';
+import CreateGroupModal from '../components/CreateGroupModal';
+import JoinGroupModal from '../components/JoinGroupModal';
 
 // Import tab components
 import DashboardHome from '../components/dashboard/DashboardHome';
 import MyGroups from '../components/dashboard/MyGroups';
+import JoinRequestsManager from '../components/dashboard/JoinRequestsManager';
 import Analytics from '../components/dashboard/Analytics';
 import Transactions from '../components/dashboard/Transactions';
 import SettingsTab from '../components/dashboard/SettingsTab';
+import TotalSavings from '../components/dashboard/TotalSavings';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -39,21 +41,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showExitGroupModal, setShowExitGroupModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState('');
-  const [groupCode, setGroupCode] = useState('');
-  const [newGroupData, setNewGroupData] = useState<CreateGroupData>({
-    name: '',
-    description: '',
-    contributionAmount: 0,
-    frequency: 'monthly'
-  });
   const [groups, setGroups] = useState<any[]>([]);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   React.useEffect(() => {
       const fetchGroups = async () => {
           try {
               const res = await apiService.getUserGroups();
-              if(res.success) {
-                  setGroups(res.data)
+              if(res.success && res.data?.groups) {
+                  setGroups(res.data.groups);
+                  await fetchPendingRequestsCount(res.data.groups);
               }
           } catch (error) {
               console.error(error)
@@ -62,34 +59,53 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       fetchGroups();
   }, [])
 
+  const fetchPendingRequestsCount = async (userGroups: any[]) => {
+    try {
+      const currentUserId = JSON.parse(localStorage.getItem('user') || '{}')?.id;
+      const leaderGroups = userGroups.filter(group => group.created_by === currentUserId);
+      
+      let totalPendingRequests = 0;
+      for (const group of leaderGroups) {
+        try {
+          const requestsResponse = await apiService.getJoinRequests(group.id.toString());
+          if (requestsResponse.success && requestsResponse.data?.requests) {
+            const pendingRequests = requestsResponse.data.requests.filter(
+              (req: any) => req.status === 'pending'
+            );
+            totalPendingRequests += pendingRequests.length;
+          }
+        } catch (err) {
+          console.error(`Failed to fetch requests for group ${group.id}:`, err);
+        }
+      }
+      setPendingRequestsCount(totalPendingRequests);
+    } catch (error) {
+      console.error('Error fetching pending requests count:', error);
+    }
+  };
+
   const sidebarItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard', active: location.pathname === '/dashboard' },
+    { icon: PiggyBank, label: 'Total Savings', path: '/dashboard/total-savings', active: location.pathname === '/dashboard/total-savings' },
     { icon: Users, label: 'My Groups', path: '/dashboard/groups', active: location.pathname === '/dashboard/groups' },
+    { icon: UserCheck, label: 'Join Requests', path: '/dashboard/join-requests', active: location.pathname === '/dashboard/join-requests' },
     { icon: BarChart3, label: 'Analytics', path: '/dashboard/analytics', active: location.pathname === '/dashboard/analytics' },
     { icon: History, label: 'Transactions', path: '/dashboard/transactions', active: location.pathname === '/dashboard/transactions' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings', active: location.pathname === '/dashboard/settings' },
     { icon: HelpCircle, label: 'Help', path: '/dashboard/help', active: false },
   ];
 
-  const handleJoinGroup = async () => {
+  const handleCreateGroupSuccess = async () => {
+    setShowCreateGroupModal(false);
+    // Refresh groups list after successful creation
     try {
-      await apiService.joinGroup(groupCode);
-      setShowJoinGroupModal(false);
-      setGroupCode('');
-      // Optionally refresh groups list
+      const res = await apiService.getUserGroups();
+      if(res.success && res.data?.groups) {
+        setGroups(res.data.groups);
+        await fetchPendingRequestsCount(res.data.groups);
+      }
     } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const handleCreateGroup = async () => {
-    try {
-      await apiService.createGroup(newGroupData);
-      setShowCreateGroupModal(false);
-      setNewGroupData({ name: '', description: '', contributionAmount: 0, frequency: 'monthly' });
-      // Optionally refresh groups list
-    } catch (error) {
-      console.error(error);
+      console.error('Error refreshing groups:', error);
     }
   };
 
@@ -108,8 +124,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     switch (location.pathname) {
       case '/dashboard':
         return 'Dashboard';
+      case '/dashboard/total-savings':
+        return 'Total Savings';
       case '/dashboard/groups':
         return 'My Groups';
+      case '/dashboard/join-requests':
+        return 'Join Requests';
       case '/dashboard/analytics':
         return 'Analytics';
       case '/dashboard/transactions':
@@ -152,6 +172,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 >
                   <item.icon className="w-5 h-5 mr-3" />
                   {item.label}
+                  {item.label === 'Join Requests' && pendingRequestsCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                      {pendingRequestsCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}
@@ -203,7 +228,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                   <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
                   <p className="text-gray-600">
                     {location.pathname === '/dashboard' && "Welcome back! Here's your savings overview."}
+                    {location.pathname === '/dashboard/total-savings' && "View your complete savings summary across all groups"}
                     {location.pathname === '/dashboard/groups' && "Manage your savings groups"}
+                    {location.pathname === '/dashboard/join-requests' && "Approve or reject requests to join your groups"}
                     {location.pathname === '/dashboard/analytics' && "Track your financial progress"}
                     {location.pathname === '/dashboard/transactions' && "View your transaction history"}
                     {location.pathname === '/dashboard/settings' && "Manage your account settings"}
@@ -230,7 +257,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         <div className="p-4 sm:p-6 lg:p-8">
           <Routes>
             <Route index element={<DashboardHome />} />
+            <Route path="total-savings" element={<TotalSavings />} />
             <Route path="groups" element={<MyGroups />} />
+            <Route path="join-requests" element={<JoinRequestsManager onRequestsUpdated={setPendingRequestsCount} />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="settings" element={<SettingsTab />} />
@@ -248,116 +277,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       )}
 
       {/* Join Group Modal */}
-      {showJoinGroupModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Join Group</h2>
-              <button
-                onClick={() => setShowJoinGroupModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Group Code
-                </label>
-                <input
-                  type="text"
-                  value={groupCode}
-                  onChange={(e) => setGroupCode(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  placeholder="Enter group code (e.g., FAM001)"
-                />
-              </div>
-              <button
-                onClick={handleJoinGroup}
-                className="w-full py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium"
-              >
-                Join Group
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <JoinGroupModal
+        isOpen={showJoinGroupModal}
+        onClose={() => setShowJoinGroupModal(false)}
+        onSuccess={handleCreateGroupSuccess}
+      />
 
       {/* Create Group Modal */}
-      {showCreateGroupModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Create New Group</h2>
-              <button
-                onClick={() => setShowCreateGroupModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Group Name
-                </label>
-                <input
-                  type="text"
-                  value={newGroupData.name}
-                  onChange={(e) => setNewGroupData({...newGroupData, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  placeholder="Enter group name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={newGroupData.description}
-                  onChange={(e) => setNewGroupData({...newGroupData, description: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  placeholder="Group description"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contribution Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  value={newGroupData.contributionAmount}
-                  onChange={(e) => setNewGroupData({...newGroupData, contributionAmount: Number(e.target.value)})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  placeholder="Monthly contribution amount"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Frequency
-                </label>
-                <select
-                  value={newGroupData.frequency}
-                  onChange={(e) => setNewGroupData({...newGroupData, frequency: e.target.value as 'weekly' | 'monthly' | 'quarterly'})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                >
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                </select>
-              </div>
-              <button
-                onClick={handleCreateGroup}
-                className="w-full py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium"
-              >
-                Create Group
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CreateGroupModal
+        isOpen={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onSuccess={handleCreateGroupSuccess}
+      />
 
       {/* Exit Group Modal */}
       {showExitGroupModal && (

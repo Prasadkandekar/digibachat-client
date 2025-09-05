@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, IndianRupee, Calendar, Copy, Eye, Settings, UserPlus, ShieldCheck } from 'lucide-react';
-import { apiService } from '../../services/api';
+import { Users, Calendar, Copy, Eye, Settings, ShieldCheck } from 'lucide-react';
+import { apiService, Group } from '../../services/api';
 import GroupDetails from './GroupDetails';
 import JoinRequests from './JoinRequests';
-
-interface Group {
-  _id: string;
-  name: string;
-  members: any[];
-  balance: string;
-  nextPayment: string;
-  groupCode: string;
-  leader: any;
-}
 
 interface MyGroupsProps {}
 
@@ -24,17 +14,17 @@ const MyGroups: React.FC<MyGroupsProps> = () => {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchUserAndGroups = async () => {
       try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        setCurrentUserId(user?._id);
+        setCurrentUserId(user?.id);
         
         const response = await apiService.getUserGroups();
-        if (response.success) {
-          setGroups(response.data);
+        if (response.success && response.data?.groups) {
+          setGroups(response.data.groups);
         }
       } catch (err) {
         setError('Failed to fetch groups.');
@@ -46,7 +36,7 @@ const MyGroups: React.FC<MyGroupsProps> = () => {
   }, []);
 
   const handleSelectGroup = async (group: Group) => {
-    if (selectedGroup?._id === group._id) {
+    if (selectedGroup?.id === group.id) {
       setSelectedGroup(null);
       setGroupDetails(null);
       setJoinRequests([]);
@@ -56,15 +46,16 @@ const MyGroups: React.FC<MyGroupsProps> = () => {
     setSelectedGroup(group);
     setIsLoading(true);
     try {
-      const detailsRes = await apiService.getGroup(group._id);
+      const detailsRes = await apiService.getGroup(group.id.toString());
       if (detailsRes.success) {
         setGroupDetails(detailsRes.data);
       }
 
-      if (group.leader._id === currentUserId) {
-        const requestsRes = await apiService.getJoinRequests(group._id);
-        if (requestsRes.success) {
-          setJoinRequests(requestsRes.data);
+      // Check if user is leader by role (since groups now include role field)
+      if (group.role === 'leader') {
+        const requestsRes = await apiService.getJoinRequests(group.id.toString());
+        if (requestsRes.success && requestsRes.data) {
+          setJoinRequests(requestsRes.data.requests);
         }
       }
     } catch (err) {
@@ -82,8 +73,8 @@ const MyGroups: React.FC<MyGroupsProps> = () => {
 
   const handleApprove = async (requestId: string) => {
     try {
-      await apiService.approveJoinRequest(selectedGroup!._id, requestId);
-      setJoinRequests(joinRequests.filter(r => r._id !== requestId));
+      await apiService.approveJoinRequest(selectedGroup!.id.toString(), requestId);
+      setJoinRequests(joinRequests.filter(r => r.id !== requestId));
     } catch (err) {
       setError('Failed to approve request');
     }
@@ -91,8 +82,8 @@ const MyGroups: React.FC<MyGroupsProps> = () => {
   
   const handleReject = async (requestId: string) => {
     try {
-      await apiService.rejectJoinRequest(selectedGroup!._id, requestId);
-      setJoinRequests(joinRequests.filter(r => r._id !== requestId));
+      await apiService.rejectJoinRequest(selectedGroup!.id.toString(), requestId);
+      setJoinRequests(joinRequests.filter(r => r.id !== requestId));
     } catch (err) {
       setError('Failed to reject request');
     }
@@ -110,7 +101,7 @@ const MyGroups: React.FC<MyGroupsProps> = () => {
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {groups.map((group) => (
-          <div key={group._id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+          <div key={group.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
               <div className="flex space-x-2">
@@ -130,35 +121,37 @@ const MyGroups: React.FC<MyGroupsProps> = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-gray-600">
                   <Users className="w-4 h-4 mr-2" />
-                  <span className="text-sm">{group.members.length} members</span>
+                  <span className="text-sm">Group members</span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{group.balance}</span>
+                <span className="text-sm font-medium text-gray-900">{group.description}</span>
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-gray-600">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span className="text-sm">Next payment</span>
+                  <span className="text-sm">Created</span>
                 </div>
-                <span className="text-sm font-medium text-teal-600">{group.nextPayment}</span>
+                <span className="text-sm font-medium text-teal-600">
+                  {new Date(group.created_at).toLocaleDateString()}
+                </span>
               </div>
               
               <div className="flex items-center justify-between pt-2 border-t">
                 <span className="text-xs text-gray-500">Group Code:</span>
                 <div className="flex items-center space-x-2">
-                  <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{group.groupCode}</code>
+                  <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{group.group_code}</code>
                   <button
-                    onClick={() => handleCopyCode(group.groupCode)}
+                    onClick={() => handleCopyCode(group.group_code)}
                     className="p-1 text-gray-400 hover:text-teal-600 transition-colors"
                   >
                     <Copy className="w-3 h-3" />
                   </button>
-                  {copiedCode === group.groupCode && (
+                  {copiedCode === group.group_code && (
                     <span className="text-xs text-green-600">Copied!</span>
                   )}
                 </div>
               </div>
-              {group.leader._id === currentUserId && (
+              {group.role === 'leader' && (
                 <div className="flex items-center text-xs text-green-600 pt-2">
                     <ShieldCheck className="w-4 h-4 mr-1" />
                     You are the leader of this group
@@ -182,8 +175,8 @@ const MyGroups: React.FC<MyGroupsProps> = () => {
               ✕
             </button>
           </div>
-          <GroupDetails group={groupDetails} />
-          {selectedGroup.leader._id === currentUserId && (
+          <GroupDetails group={groupDetails.group} members={groupDetails.members} />
+          {selectedGroup.role === 'leader' && (
             <div className="mt-8">
               <JoinRequests requests={joinRequests} onApprove={handleApprove} onReject={handleReject}/>
             </div>
