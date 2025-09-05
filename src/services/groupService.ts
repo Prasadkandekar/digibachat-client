@@ -122,7 +122,7 @@ export const groupService = {
   getGroupByCode: async (groupCode: string): Promise<Group> => {
     try {
       const response = await apiService.request<any>(
-        'http://localhost:5000/api/groups',
+        'https://digibachat.onrender.com/api/groups',
         `/public/${groupCode}`,
         { method: 'GET' }
       );

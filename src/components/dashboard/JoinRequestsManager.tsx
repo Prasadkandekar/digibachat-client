@@ -152,7 +152,7 @@ const JoinRequestsManager: React.FC<JoinRequestsManagerProps> = ({ onRequestsUpd
           console.log(`Testing debug endpoint for group ${group.id}`);
           
           // Test the no-auth debug endpoint
-          const response = await fetch(`http://localhost:5000/api/groups/${group.id}/debug-join-requests-no-auth`);
+          const response = await fetch(`https://digibachat.onrender.com/api/groups/${group.id}/debug-join-requests-no-auth`);
           const data = await response.json();
           console.log('Debug endpoint response:', data);
           
