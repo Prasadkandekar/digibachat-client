@@ -195,7 +195,7 @@ const GroupLoans: React.FC<GroupLoansProps> = ({ groupId, isLeader }) => {
                     {loan.user_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${loan.amount ? loan.amount.toFixed(2) : '0.00'}
+                    ${loan.amount ? Number(loan.amount).toFixed(2) : '0.00'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {loan.purpose}

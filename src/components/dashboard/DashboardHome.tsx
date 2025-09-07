@@ -26,15 +26,10 @@ import {
   Plus, 
   UserPlus,
   Search,
-  Calendar,
-  ArrowDownLeft,
   CreditCard,
-  MessageCircle,
-  User,
-  DollarSign,
-  Clock,
-  Wallet,
   Percent,
+  Wallet,
+  Clock as Calendar,
   History
 } from 'lucide-react';
 import { Group } from '../../types/group';
@@ -47,7 +42,6 @@ import GroupHistoryModal from '../GroupHistoryModal';
 import InviteMembersModal from '../InviteMembersModal';
 import { useToast } from '../../contexts/ToastContext';
 import { apiService } from '../../services/api';
-import GroupLoans from './GroupLoans';
 
 const DashboardHome: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -66,6 +60,7 @@ const DashboardHome: React.FC = () => {
   const [userName, setUserName] = useState('');
   const [userContributions, setUserContributions] = useState<{[key: string]: number}>({});
   const [activeLoanHolders, setActiveLoanHolders] = useState<{[key: string]: string}>({});
+  const [pendingLoanRequests, setPendingLoanRequests] = useState<{[key: string]: any[]}>({});
   const toast = useToast();
 
   useEffect(() => {
@@ -73,7 +68,97 @@ const DashboardHome: React.FC = () => {
     loadActualTotalSavings();
     loadUserName();
     loadUserContributions();
+    loadPendingLoanRequests();
   }, []);
+
+  const loadPendingLoanRequests = async () => {
+    try {
+      console.log('Loading pending loan requests...');
+      // First, get all groups where the user is a member
+      const groupsResponse = await apiService.getUserGroups();
+      
+      if (!groupsResponse.success || !groupsResponse.data?.groups) {
+        console.log('Failed to load user groups');
+        return;
+      }
+
+      console.log('User groups loaded:', groupsResponse.data.groups);
+      const requests: {[key: string]: any[]} = {};
+      
+      // Filter groups where the user is a leader
+      const leaderGroups = groupsResponse.data.groups.filter(
+        (group: any) => group.is_leader || group.role === 'leader' || group.created_by === JSON.parse(localStorage.getItem('user') || '{}')?.id
+      );
+
+      console.log(`Found ${leaderGroups.length} leader groups`);
+      
+      // Process each leader group to get pending loan requests
+      for (const group of leaderGroups) {
+        try {
+          console.log(`Fetching loan requests for group ${group.id} (${group.name})`);
+          try {
+            const response = await apiService.getGroupLoanRequests(group.id.toString());
+            console.log(`Loan requests for group ${group.id} (${group.name}):`, response);
+            
+            if (!response.success) {
+              console.error('Failed to fetch loan requests:', response.message || 'No error message');
+              return;
+            }
+            
+            // The loans are in response.data.loans
+            const loans = response.data?.loans || [];
+            console.log(`Raw loans data for group ${group.id}:`, loans);
+            
+            if (!Array.isArray(loans)) {
+              console.error(`Expected loans to be an array, got:`, typeof loans);
+              return;
+            }
+            
+            const pendingLoans = loans.filter((loan: any) => {
+              const isPending = loan.status === 'pending';
+              if (isPending) {
+                console.log('Found pending loan:', loan);
+              }
+              return isPending;
+            });
+            
+            console.log(`Found ${pendingLoans.length} pending loans for group ${group.id} (${group.name})`);
+            
+            if (pendingLoans.length > 0) {
+              requests[group.id] = pendingLoans.map((loan: any) => {
+                // Ensure amount is a number and handle null/undefined cases
+                const amount = loan.amount ? parseFloat(loan.amount) : 0;
+                return {
+                  id: loan.id,
+                  group_id: loan.group_id,
+                  user_id: loan.user_id,
+                  amount: amount,
+                  purpose: loan.purpose || 'No purpose specified',
+                  status: loan.status || 'pending',
+                  requested_at: loan.requested_at || loan.created_at || new Date().toISOString(),
+                  user_name: loan.user_name || 'Unknown User',
+                  user_email: loan.user_email || '',
+                  // Include any other required fields with defaults
+                  ...(loan.repayment_status && { repayment_status: loan.repayment_status }),
+                  ...(loan.due_date && { due_date: loan.due_date })
+                };
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching loans for group ${group.id}:`, error);
+          }
+        } catch (groupError) {
+          console.error(`Error processing group ${group.id}:`, groupError);
+        }
+      }
+      
+      console.log('Setting pending loan requests:', requests);
+      setPendingLoanRequests(requests);
+    } catch (error) {
+      console.error('Failed to load pending loan requests:', error);
+      toast.error('Failed to load pending loan requests');
+    }
+  };
   
   const loadUserContributions = async () => {
     try {
@@ -93,8 +178,8 @@ const DashboardHome: React.FC = () => {
   const loadUserName = async () => {
     try {
       const response = await apiService.getCurrentUser();
-      if (response.success && response.data) {
-        setUserName(response.data.name);
+      if (response.success && response.data?.user) {
+        setUserName(response.data.user.name);
       }
     } catch (error) {
       console.error('Failed to load user name:', error);
@@ -122,13 +207,13 @@ const DashboardHome: React.FC = () => {
       const loanHoldersMap: {[key: string]: string} = {};
       for (const group of userGroups) {
         try {
-          const loansResponse = await apiService.get(`/loans/group/${group.id}`);
-          if (loansResponse.success && loansResponse.data) {
-            const activeLoans = loansResponse.data.filter(
+          const loansResponse = await apiService.getGroupLoanRequests(group.id.toString());
+          if (loansResponse.success && loansResponse.data?.loans) {
+            const activeLoans = loansResponse.data.loans.filter(
               (loan: any) => loan.status === 'approved' && loan.repayment_status === 'pending'
             );
             if (activeLoans.length > 0) {
-              loanHoldersMap[group.id] = activeLoans[0].borrower_name || 'Unknown';
+              loanHoldersMap[group.id] = activeLoans[0].user_name || 'Unknown';
             }
           }
         } catch (err) {
@@ -145,19 +230,6 @@ const DashboardHome: React.FC = () => {
   };
   
   
-  const loadActiveLoanHolder = async (groupId: string) => {
-    try {
-      const response = await apiService.getActiveLoanHolder(groupId);
-      if (response.success && response.data && response.data.active_loan_holder) {
-        setActiveLoanHolders(prev => ({
-          ...prev,
-          [groupId]: response.data.active_loan_holder
-        }));
-      }
-    } catch (error) {
-      console.error(`Failed to load active loan holder for group ${groupId}:`, error);
-    }
-  };
 
   const loadActualTotalSavings = async () => {
     try {
@@ -229,17 +301,6 @@ const DashboardHome: React.FC = () => {
     }
   };
 
-  const handleJoinGroup = async (groupCode: string) => {
-    try {
-      const result = await groupService.joinGroup(groupCode);
-      await loadUserGroups();
-      setShowJoinModal(false);
-      toast.success(result.message || 'Successfully joined the group!');
-    } catch (error) {
-      console.error('Failed to join group:', error);
-      toast.error('Failed to join group. Please check the group code and try again.');
-    }
-  };
 
   const handleContribution = async (paymentMethod: string) => {
     if (!selectedGroupForContribution) return;
@@ -301,7 +362,106 @@ const DashboardHome: React.FC = () => {
         ))}
       </div>
 
-      {/* Loans Section - Now moved to dedicated Loans tab */}
+      {/* Pending Loan Requests for Group Leaders */}
+      {Object.keys(pendingLoanRequests).length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Pending Loan Requests</h3>
+          </div>
+          <div className="space-y-4">
+            {Object.entries(pendingLoanRequests).map(([groupId, loans]) => {
+              const group = groups.find(g => g.id.toString() === groupId);
+              if (!group) return null;
+              
+              return (
+                <div key={groupId} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-medium text-gray-900">{group.name}</h4>
+                    <span className="text-sm px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">
+                      {loans.length} {loans.length === 1 ? 'Request' : 'Requests'}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {loans.map((loan) => (
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">{loan.user_name || 'Member'}</p>
+                          <p className="text-sm text-gray-600">₹{loan.amount} • {loan.purpose}</p>
+                          {loan.status !== 'pending' && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${
+                              loan.status === 'approved' 
+                                ? 'bg-green-100 text-green-800' 
+                                : loan.status === 'rejected' 
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                            }">
+                              {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          {loan.status === 'pending' ? (
+                            <>
+                              <button 
+                                onClick={async () => {
+                                  try {
+                                    await apiService.approveLoanRequest(
+                                      groupId, 
+                                      loan.id.toString(),
+                                      { 
+                                        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                        interestRate: group.interest_rate || 10,
+                                        paymentMethod: 'group_funds'
+                                      }
+                                    );
+                                    await loadPendingLoanRequests();
+                                    toast.success('Loan request approved successfully!');
+                                  } catch (error: any) {
+                                    console.error('Failed to approve loan:', error);
+                                    const errorMessage = error?.response?.data?.message || error?.message || 'Failed to approve loan request';
+                                    toast.error(errorMessage);
+                                  }
+                                }}
+                                className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                onClick={async () => {
+                                  try {
+                                    await apiService.rejectLoanRequest(groupId, loan.id.toString());
+                                    await loadPendingLoanRequests();
+                                    toast.success('Loan request rejected');
+                                  } catch (error: any) {
+                                    console.error('Failed to reject loan:', error);
+                                    const errorMessage = error?.response?.data?.message || error?.message || 'Failed to reject loan request';
+                                    toast.error(errorMessage);
+                                  }
+                                }}
+                                className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-500">
+                              {loan.status === 'approved' 
+                                ? 'Approved' 
+                                : loan.status === 'rejected' 
+                                  ? 'Rejected' 
+                                  : 'Processed'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       
       {/* Groups Section - WhatsApp Style */}
       <div className="grid lg:grid-cols-1 gap-8">

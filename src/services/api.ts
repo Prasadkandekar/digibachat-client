@@ -110,6 +110,7 @@ export interface LoginResponseData {
     email: string;
     phone?: string;
   };
+  token?: string;
 }
 
 export interface GroupsResponseData {
@@ -140,145 +141,103 @@ export interface JoinGroupResponseData {
 }
 
 class ApiService {
-  async request<T extends ApiResponse>(
-  baseUrl: string,
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${baseUrl}${endpoint}`;
-  const token = localStorage.getItem('token');
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...(options.headers as HeadersInit),
-  };
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include',
+  private async request<T extends ApiResponse>(
+    baseUrl: string,
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const token = localStorage.getItem('token');
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
     });
 
-    const text = await response.text(); // get raw response
-    let data: any;
+    // Merge headers from options if they exist
+    if (options.headers) {
+      const optionHeaders = new Headers(options.headers);
+      optionHeaders.forEach((value, key) => {
+        headers.set(key, value);
+      });
+    }
 
     try {
-      data = text ? JSON.parse(text) : {};
-    } catch {
-      // Not JSON → wrap in an object
-      data = { success: false, message: text };
-    }
+      console.log('API Request:', {
+        url: `${baseUrl}${endpoint}`,
+        method: options.method || 'GET',
+        headers: Object.fromEntries(headers.entries()),
+        body: options.body ? JSON.parse(options.body as string) : undefined
+      });
 
-    if (response.status === 401) {
-      localStorage.removeItem('token');
-      throw new Error('Access denied. No token provided.');
-    }
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        ...options,
+        headers,
+        body: options.body
+      });
 
-    if (!response.ok) {
-      throw new Error(data.message || `HTTP ${response.status}: ${text}`);
-    }
-
-    return data as T;
-  } catch (error) {
-    console.error('API Request Error:', error);
-    throw error;
-  }
-}
-
-  //  async request<T extends ApiResponse>(baseUrl: string, endpoint: string, options: RequestInit = {}): Promise<T> {
-  //   const url = `${baseUrl}${endpoint}`;
-  //   console.log('Preparing request to:', url);
-  //   const token = localStorage.getItem('token');
-  //   console.log('Retrieved token:', token ? token.substring(0, 20) + '...' : 'No token found');
-  //   console.log('Making request to:', url);
-  //   console.log('Token exists:', !!token);
-
-  //   const headers: HeadersInit = {
-  //     'Content-Type': 'application/json',
-  //     ...(token && { 'Authorization': `Bearer ${token}` }),
-  //     ...(options.headers as HeadersInit),
-  //   };
-  //   console.log('Request headers:', headers);
-
-  //   try {
-  //     const response = await fetch(url, {
-  //       ...options,
-  //       headers,
-  //         credentials: 'include',
-  //     });
+      const responseData = await response.json().catch(() => ({}));
       
-  //     console.log('Response status:', response.status);
+      if (!response.ok) {
+        throw new Error(responseData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
 
-  //     // Handle unauthorized responses
-  //     if (response.status === 401) {
-  //       localStorage.removeItem('token');
-  //       throw new Error('Access denied. No token provided.');
-  //     }
+      return responseData as T;
+    } catch (error) {
+      console.error('API Request Error:', error);
+      throw error;
+    }
+  }
 
-  //     const data: T = await response.json();
-  //     console.log('Response data:', data);
-
-  //     if (!response.ok) {
-  //       throw new Error(data.message || 'Something went wrong');
-  //     }
-
-  //     return data;
-  //   } catch (error) {
-  //     console.error('API Request Error:', error);
-  //     throw error;
-  //   }
-  // }
-
-  // Auth
+  // Auth methods
   async login(credentials: LoginData): Promise<ApiResponse<LoginResponseData>> {
     try {
-      const response = await this.request<ApiResponse<LoginResponseData>>(API_BASE_URL, '/login', {
-        method: 'POST',
-        body: JSON.stringify(credentials),
-      });
+      const response = await this.request<ApiResponse<LoginResponseData>>(
+        API_BASE_URL,
+        '/login',
+        {
+          method: 'POST',
+          body: JSON.stringify(credentials),
+          credentials: 'include' as RequestCredentials
+        }
+      );
 
       // Store the token if it exists in the response
       if (response.token) {
         localStorage.setItem('token', response.token);
-        console.log('Token stored successfully:', response.token.substring(0, 20) + '...');
       } else if (response.data?.token) {
         localStorage.setItem('token', response.data.token);
-        console.log('Token stored from data object:', response.data.token.substring(0, 20) + '...');
-      } else {
-        console.warn('No token received in login response');
       }
 
       // Store user data if it exists in the response
       if (response.data?.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        console.log('User data stored successfully:', response.data.user);
-      } else {
-        console.warn('No user data received in login response');
       }
 
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
+      if (error.message?.includes('401')) {
+        localStorage.removeItem('token');
+        throw new Error('Access denied. Invalid credentials.');
+      }
       throw error;
     }
   }
 
   async register(userData: RegisterData): Promise<ApiResponse<LoginResponseData>> {
     try {
-      const response = await this.request<ApiResponse<LoginResponseData>>(API_BASE_URL, '/register', {
-        method: 'POST',
-        body: JSON.stringify(userData),
-      });
+      const response = await this.request<ApiResponse<LoginResponseData>>(
+        API_BASE_URL,
+        '/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(userData),
+        }
+      );
 
-      // Some APIs return token on registration too
       if (response.token) {
         localStorage.setItem('token', response.token);
-        console.log('Token stored after registration:', response.token.substring(0, 20) + '...');
       } else if (response.data?.token) {
         localStorage.setItem('token', response.data.token);
-        console.log('Token stored from data after registration:', response.data.token.substring(0, 20) + '...');
       }
 
       return response;
@@ -288,11 +247,16 @@ class ApiService {
     }
   }
 
-  async verifyEmail(verifyData: VerifyEmailData): Promise<ApiResponse> {
-    return this.request<ApiResponse>(API_BASE_URL, '/verify-email', {
-      method: 'POST',
-      body: JSON.stringify(verifyData),
-    });
+  async verifyEmail(verificationData: VerifyEmailData): Promise<ApiResponse> {
+    try {
+      return await this.request<ApiResponse>(API_BASE_URL, '/verify-email', {
+        method: 'POST',
+        body: JSON.stringify(verificationData),
+      });
+    } catch (error) {
+      console.error('Email verification failed:', error);
+      throw error;
+    }
   }
 
   async resendOtp(email: string): Promise<ApiResponse> {
@@ -327,13 +291,13 @@ class ApiService {
   
   async getUserGroups(): Promise<ApiResponse<GroupsResponseData>> {
     return this.request<ApiResponse<GroupsResponseData>>(GROUP_API_BASE_URL, '/my-groups', {
-      method: 'GET'
+      method: 'GET',
     });
   }
 
   async getLeaderGroups(): Promise<ApiResponse<GroupsResponseData>> {
     return this.request<ApiResponse<GroupsResponseData>>(GROUP_API_BASE_URL, '/my-leader-groups', {
-      method: 'GET'
+      method: 'GET',
     });
   }
 
@@ -426,22 +390,91 @@ class ApiService {
   }
 
   async getGroupLoanRequests(groupId: string): Promise<ApiResponse<{ loans: LoanRequest[] }>> {
-    return this.request<ApiResponse<{ loans: LoanRequest[] }>>(LOAN_API_BASE_URL, `/groups/${groupId}/loans`, {
-      method: 'GET'
-    });
+    try {
+      const response = await this.request<ApiResponse<{ loans: LoanRequest[] }>>(
+        LOAN_API_BASE_URL, 
+        `/groups/${groupId}/loans`, 
+        { method: 'GET' }
+      );
+
+      console.log('Raw loan response:', response);
+
+      // Ensure we always return the correct structure
+      if (response && response.success === true) {
+        const loans = Array.isArray(response.data?.loans) 
+          ? response.data.loans 
+          : [];
+          
+        return {
+          success: true,
+          message: response.message || 'Success',
+          data: { loans }
+        };
+      }
+
+      // Fallback for error cases
+      return { 
+        success: false, 
+        message: response?.message || 'Failed to fetch loans',
+        data: { loans: [] }
+      };
+      
+    } catch (error) {
+      console.error('Error fetching loan requests:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch loan requests',
+        data: { loans: [] }
+      };
+    }
   }
 
   async getUserLoanRequests(): Promise<ApiResponse<{ loans: LoanRequest[] }>> {
-    return this.request<ApiResponse<{ loans: LoanRequest[] }>>(LOAN_API_BASE_URL, `/user/loans`, {
+    const response = await this.request<ApiResponse<{ loans: LoanRequest[] }>>(LOAN_API_BASE_URL, `/user/loans`, {
       method: 'GET'
     });
+    
+    // Ensure response.data exists and has a loans property
+    if (response && response.data && Array.isArray(response.data)) {
+      return {
+        ...response,
+        data: { loans: response.data },
+      };
+    }
+    
+    // Fallback to empty array if data is not in expected format
+    return {
+      ...response,
+      data: { loans: [] },
+    };
   }
 
-  async approveLoanRequest(groupId: string, loanId: string, approvalData: { due_date: string, interest_rate: number }): Promise<ApiResponse> {
-    return this.request<ApiResponse>(LOAN_API_BASE_URL, `/groups/${groupId}/loans/${loanId}/approve`, {
-      method: 'PUT',
-      body: JSON.stringify(approvalData)
-    });
+  async approveLoanRequest(
+    groupId: string, 
+    loanId: string, 
+    approvalData: { 
+      dueDate: string; 
+      interestRate: number; 
+      paymentMethod: string; 
+    }
+  ): Promise<ApiResponse> {
+    const requestBody = {
+      dueDate: approvalData.dueDate,
+      interestRate: approvalData.interestRate,
+      paymentMethod: approvalData.paymentMethod
+    };
+    
+    return this.request<ApiResponse>(
+      LOAN_API_BASE_URL, 
+      `/groups/${groupId}/loans/${loanId}/approve`, 
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      }
+    );
   }
 
   async rejectLoanRequest(groupId: string, loanId: string): Promise<ApiResponse> {
