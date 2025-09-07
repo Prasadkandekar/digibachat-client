@@ -15,7 +15,8 @@ import {
   History,
   HelpCircle,
   UserCheck,
-  PiggyBank
+  PiggyBank,
+  CreditCard
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import CreateGroupModal from '../components/CreateGroupModal';
@@ -29,6 +30,7 @@ import Analytics from '../components/dashboard/Analytics';
 import Transactions from '../components/dashboard/Transactions';
 import SettingsTab from '../components/dashboard/SettingsTab';
 import TotalSavings from '../components/dashboard/TotalSavings';
+import Loans from '../components/dashboard/Loans';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -88,6 +90,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     { icon: Home, label: 'Dashboard', path: '/dashboard', active: location.pathname === '/dashboard' },
     { icon: PiggyBank, label: 'Total Savings', path: '/dashboard/total-savings', active: location.pathname === '/dashboard/total-savings' },
     { icon: Users, label: 'My Groups', path: '/dashboard/groups', active: location.pathname === '/dashboard/groups' },
+    { icon: CreditCard, label: 'Loans', path: '/dashboard/loans', active: location.pathname === '/dashboard/loans' },
     { icon: UserCheck, label: 'Join Requests', path: '/dashboard/join-requests', active: location.pathname === '/dashboard/join-requests' },
     { icon: BarChart3, label: 'Analytics', path: '/dashboard/analytics', active: location.pathname === '/dashboard/analytics' },
     { icon: History, label: 'Transactions', path: '/dashboard/transactions', active: location.pathname === '/dashboard/transactions' },
@@ -259,6 +262,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             <Route index element={<DashboardHome />} />
             <Route path="total-savings" element={<TotalSavings />} />
             <Route path="groups" element={<MyGroups />} />
+            <Route path="loans" element={<Loans />} />
             <Route path="join-requests" element={<JoinRequestsManager onRequestsUpdated={setPendingRequestsCount} />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="transactions" element={<Transactions />} />

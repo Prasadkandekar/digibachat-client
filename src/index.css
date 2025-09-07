@@ -1,3 +1,89 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Group styles */
+.group-card {
+  @apply bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-l-primary hover:shadow-lg transition-shadow;
+}
+
+.group-card-header {
+  @apply flex justify-between items-center mb-2;
+}
+
+.group-card-title {
+  @apply text-lg font-semibold text-gray-800;
+}
+
+.group-card-description {
+  @apply text-sm text-gray-600 mb-2;
+}
+
+.group-card-stats {
+  @apply flex flex-wrap gap-2 text-xs text-gray-500;
+}
+
+.group-card-stat {
+  @apply flex items-center gap-1;
+}
+
+/* WhatsApp-like group styles */
+.whatsapp-group-card {
+  @apply bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-l-primary hover:shadow-lg transition-shadow cursor-pointer;
+}
+
+.whatsapp-group-header {
+  @apply flex items-center gap-3 mb-3;
+}
+
+.whatsapp-group-avatar {
+  @apply w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-xl font-bold;
+}
+
+.whatsapp-group-info {
+  @apply flex-1;
+}
+
+.whatsapp-group-name {
+  @apply text-lg font-semibold text-gray-800;
+}
+
+.whatsapp-group-description {
+  @apply text-sm text-gray-600 truncate;
+}
+
+.whatsapp-group-stats {
+  @apply grid grid-cols-2 gap-2 mt-3 text-sm;
+}
+
+.whatsapp-group-stat {
+  @apply flex items-center gap-1 text-gray-700;
+}
+
+.whatsapp-group-stat-label {
+  @apply text-gray-500 text-xs;
+}
+
+.whatsapp-group-stat-value {
+  @apply font-medium;
+}
+
+.whatsapp-group-actions {
+  @apply grid grid-cols-5 gap-2 mt-3;
+}
+
+.whatsapp-group-action-btn {
+  @apply flex flex-col items-center justify-center p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-xs;
+}
+
+.whatsapp-group-action-primary {
+  @apply bg-primary bg-opacity-10 hover:bg-opacity-20 text-primary;
+}
+
+.whatsapp-group-action-icon {
+  @apply text-primary mb-1;
+}
+
+.whatsapp-group-action-label {
+  @apply text-xs text-gray-700;
+}

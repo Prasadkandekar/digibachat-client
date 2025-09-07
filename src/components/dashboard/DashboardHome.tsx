@@ -1,4 +1,25 @@
 import React, { useState, useEffect } from 'react';
+
+const calculateNextContributionDate = (frequency: string): string => {
+  const today = new Date();
+  let nextDate = new Date(today);
+  
+  if (frequency === 'weekly') {
+    // Set to next week
+    nextDate.setDate(today.getDate() + 7);
+  } else if (frequency === 'monthly') {
+    // Set to next month
+    nextDate.setMonth(today.getMonth() + 1);
+  }
+  
+  // Format the date as DD/MM/YYYY
+  return nextDate.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
+import { Link } from 'react-router-dom';
 import { 
   PiggyBank, 
   Users, 
@@ -6,7 +27,15 @@ import {
   UserPlus,
   Search,
   Calendar,
-  ArrowDownLeft
+  ArrowDownLeft,
+  CreditCard,
+  MessageCircle,
+  User,
+  DollarSign,
+  Clock,
+  Wallet,
+  Percent,
+  History
 } from 'lucide-react';
 import { Group } from '../../types/group';
 import { groupService } from '../../services/groupService';
@@ -18,6 +47,7 @@ import GroupHistoryModal from '../GroupHistoryModal';
 import InviteMembersModal from '../InviteMembersModal';
 import { useToast } from '../../contexts/ToastContext';
 import { apiService } from '../../services/api';
+import GroupLoans from './GroupLoans';
 
 const DashboardHome: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -34,13 +64,31 @@ const DashboardHome: React.FC = () => {
   const [totalSavings, setTotalSavings] = useState(0);
   const [actualTotalSavings, setActualTotalSavings] = useState(0);
   const [userName, setUserName] = useState('');
+  const [userContributions, setUserContributions] = useState<{[key: string]: number}>({});
+  const [activeLoanHolders, setActiveLoanHolders] = useState<{[key: string]: string}>({});
   const toast = useToast();
 
   useEffect(() => {
     loadUserGroups();
     loadActualTotalSavings();
     loadUserName();
+    loadUserContributions();
   }, []);
+  
+  const loadUserContributions = async () => {
+    try {
+      const response = await apiService.getUserContributions();
+      if (response.success && response.data) {
+        const contributions: {[key: string]: number} = {};
+        response.data.contributions.forEach((contribution: any) => {
+          contributions[contribution.group_id] = contribution.total_amount || 0;
+        });
+        setUserContributions(contributions);
+      }
+    } catch (error) {
+      console.error('Failed to load user contributions:', error);
+    }
+  };
 
   const loadUserName = async () => {
     try {
@@ -69,11 +117,45 @@ const DashboardHome: React.FC = () => {
         return total + amount;
       }, 0);
       setTotalSavings(savings);
+      
+      // Load active loan holders for each group
+      const loanHoldersMap: {[key: string]: string} = {};
+      for (const group of userGroups) {
+        try {
+          const loansResponse = await apiService.get(`/loans/group/${group.id}`);
+          if (loansResponse.success && loansResponse.data) {
+            const activeLoans = loansResponse.data.filter(
+              (loan: any) => loan.status === 'approved' && loan.repayment_status === 'pending'
+            );
+            if (activeLoans.length > 0) {
+              loanHoldersMap[group.id] = activeLoans[0].borrower_name || 'Unknown';
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to load loans for group ${group.id}:`, err);
+        }
+      }
+      setActiveLoanHolders(loanHoldersMap);
     } catch (error) {
       console.error('Failed to load groups:', error);
       toast.error('Failed to load your groups. Please refresh the page.');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  
+  const loadActiveLoanHolder = async (groupId: string) => {
+    try {
+      const response = await apiService.getActiveLoanHolder(groupId);
+      if (response.success && response.data && response.data.active_loan_holder) {
+        setActiveLoanHolders(prev => ({
+          ...prev,
+          [groupId]: response.data.active_loan_holder
+        }));
+      }
+    } catch (error) {
+      console.error(`Failed to load active loan holder for group ${groupId}:`, error);
     }
   };
 
@@ -98,6 +180,13 @@ const DashboardHome: React.FC = () => {
       description: 'Actual amount saved'
     },
     {
+      title: 'Loan Management',
+      value: 'View',
+      icon: CreditCard,
+      color: 'bg-red-500',
+      description: 'Request and manage loans'
+    },
+    {
       title: 'Monthly Commitments',
       value: `₹${totalSavings.toLocaleString()}`,
       icon: PiggyBank,
@@ -108,7 +197,7 @@ const DashboardHome: React.FC = () => {
       title: 'Groups Joined',
       value: groups.length.toString(),
       icon: Users,
-      color: 'bg-blue-500',
+      color: 'bg-teal-500',
       description: 'Active savings groups'
     },
     {
@@ -173,7 +262,7 @@ const DashboardHome: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
       </div>
     );
   }
@@ -212,7 +301,9 @@ const DashboardHome: React.FC = () => {
         ))}
       </div>
 
-      {/* Groups Section */}
+      {/* Loans Section - Now moved to dedicated Loans tab */}
+      
+      {/* Groups Section - WhatsApp Style */}
       <div className="grid lg:grid-cols-1 gap-8">
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex justify-between items-center mb-6">
@@ -223,7 +314,7 @@ const DashboardHome: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Search groups..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
             </div>
@@ -233,107 +324,129 @@ const DashboardHome: React.FC = () => {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer"
+                className={`whatsapp-group-card ${selectedGroup?.id === group.id ? 'border-l-8' : ''}`}
                 onClick={() => setSelectedGroup(selectedGroup?.id === group.id ? null : group)}
               >
-                {/* Group Header */}
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{group.name}</h4>
-                    <p className="text-sm text-gray-500">{group.description}</p>
+                <div className="whatsapp-group-header">
+                  <div className="whatsapp-group-avatar">
+                    {group.name.charAt(0)}
                   </div>
-                  <div className="text-right">
-                    <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      {group.savings_frequency}
-                    </span>
-                    <p className="text-xs text-gray-500 mt-1">Code: {group.group_code}</p>
+                  <div className="whatsapp-group-info">
+                    <h3 className="whatsapp-group-name">{group.name}</h3>
+                    <p className="whatsapp-group-description">{group.description}</p>
                   </div>
+                  <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
+                    {group.savings_frequency === 'weekly' ? 'Weekly' : 'Monthly'}
+                  </span>
                 </div>
-
+                
                 {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
-                  <div className="text-center">
-                    <p className="text-gray-600">Monthly Contribution</p>
-                    <p className="font-semibold">₹{group.savings_amount}</p>
+                <div className="whatsapp-group-stats">
+                  <div className="whatsapp-group-stat">
+                    <CreditCard size={14} className="text-primary" />
+                    <div>
+                      <div className="whatsapp-group-stat-label">Contribution</div>
+                      <div className="whatsapp-group-stat-value">₹{group.savings_amount} / {group.savings_frequency}</div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-gray-600">Interest Rate</p>
-                    <p className="font-semibold text-green-600">{group.interest_rate}%</p>
+                  <div className="whatsapp-group-stat">
+                    <Percent size={14} className="text-primary" />
+                    <div>
+                      <div className="whatsapp-group-stat-label">Interest Rate</div>
+                      <div className="whatsapp-group-stat-value">{group.interest_rate}%</div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-gray-600">Duration</p>
-                    <p className="font-semibold">{group.default_loan_duration} months</p>
+                  <div className="whatsapp-group-stat">
+                    <PiggyBank size={14} className="text-primary" />
+                    <div>
+                      <div className="whatsapp-group-stat-label">Total Savings</div>
+                      <div className="whatsapp-group-stat-value">₹{(group.total_savings || 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                  <div className="whatsapp-group-stat">
+                    <Wallet size={14} className="text-primary" />
+                    <div>
+                      <div className="whatsapp-group-stat-label">Your Contribution</div>
+                      <div className="whatsapp-group-stat-value">₹{(userContributions[group.id] || 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                  {activeLoanHolders[group.id] && (
+                    <div className="whatsapp-group-stat col-span-2">
+                      <CreditCard size={14} className="text-primary" />
+                      <div>
+                        <div className="whatsapp-group-stat-label">Current Loan Holder</div>
+                        <div className="whatsapp-group-stat-value">{activeLoanHolders[group.id]}</div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="whatsapp-group-stat">
+                    <Calendar size={14} className="text-primary" />
+                    <div>
+                      <div className="whatsapp-group-stat-label">Next Contribution</div>
+                      <div className="whatsapp-group-stat-value">{calculateNextContributionDate(group.savings_frequency)}</div>
+                    </div>
                   </div>
                 </div>
-
-                {/* Expanded Details */}
+                
+                {/* Action Buttons */}
                 {selectedGroup?.id === group.id && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    {/* Contribution Details */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Next Contribution Due</p>
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 text-blue-600 mr-1" />
-                          <span className="text-xs text-gray-500">September 15, 2025</span>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Amount Due</p>
-                        <div className="flex items-center">
-                          <ArrowDownLeft className="w-4 h-4 text-green-600 mr-1" />
-                          <span className="font-medium">₹{group.savings_amount}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons - First Row */}
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      <button 
-                        className="bg-purple-100 text-purple-700 px-3 py-2 rounded text-sm hover:bg-purple-200 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGroupForModal(group);
-                          setShowHistoryModal(true);
-                        }}
-                      >
-                        View History
-                      </button>
-                      <button 
-                        className="bg-blue-100 text-blue-700 px-3 py-2 rounded text-sm hover:bg-blue-200 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGroupForModal(group);
-                          setShowMembersModal(true);
-                        }}
-                      >
-                        Show Members
-                      </button>
-                    </div>
+                  <div className="whatsapp-group-actions">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowHistoryModal(true);
+                        setSelectedGroupForModal(group);
+                      }}
+                      className="whatsapp-group-action-btn"
+                    >
+                      <History size={16} />
+                      <span>History</span>
+                    </button>
                     
-                    {/* Action Buttons - Second Row */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button 
-                        className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded text-sm hover:bg-indigo-200 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGroupForContribution(group);
-                          setShowContributeModal(true);
-                        }}
-                      >
-                        Add Contribution
-                      </button>
-                      <button 
-                        className="bg-green-100 text-green-700 px-3 py-2 rounded text-sm hover:bg-green-200 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGroupForModal(group);
-                          setShowInviteModal(true);
-                        }}
-                      >
-                        Invite Members
-                      </button>
-                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowMembersModal(true);
+                        setSelectedGroupForModal(group);
+                      }}
+                      className="whatsapp-group-action-btn"
+                    >
+                      <Users size={16} />
+                      <span>Members</span>
+                    </button>
+                    
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowContributeModal(true);
+                        setSelectedGroupForContribution(group);
+                      }}
+                      className="whatsapp-group-action-btn whatsapp-group-action-primary"
+                    >
+                      <PiggyBank size={16} />
+                      <span>Contribute</span>
+                    </button>
+                    
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowInviteModal(true);
+                        setSelectedGroupForModal(group);
+                      }}
+                      className="whatsapp-group-action-btn"
+                    >
+                      <UserPlus size={16} />
+                      <span>Invite</span>
+                    </button>
+                    
+                    <Link 
+                      to="/dashboard/loans"
+                      onClick={(e) => e.stopPropagation()}
+                      className="whatsapp-group-action-btn"
+                    >
+                      <CreditCard size={16} />
+                      <span>Manage Loans</span>
+                    </Link>
                   </div>
                 )}
               </div>

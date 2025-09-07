@@ -46,7 +46,7 @@ const Toast: React.FC<ToastProps> = ({ toast }) => {
         return `${baseStyles} border-yellow-400 bg-yellow-50`;
       case 'info':
       default:
-        return `${baseStyles} border-blue-400 bg-blue-50`;
+        return `${baseStyles} border-teal-400 bg-teal-50`;
     }
   };
 

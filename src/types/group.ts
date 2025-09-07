@@ -14,6 +14,7 @@ export interface Group {
   member_status?: string; // 'approved' | 'pending'
   joined_at?: string;
   is_leader?: boolean;
+  total_savings?: number; // Total savings amount for the group
   // Add any additional fields that might come from your API
   contributionAmount?: number;
   frequency?: 'weekly' | 'monthly' | 'quarterly';

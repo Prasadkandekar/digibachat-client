@@ -1,13 +1,15 @@
 // src/services/api.ts
-const API_BASE_URL = 'https://digibachat.onrender.com/api/auth';
-const PASSWORD_API_BASE_URL = 'https://digibachat.onrender.com/api/password';
-const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
-const TRANSACTION_API_BASE_URL = 'https://digibachat.onrender.com/api/transactions';
+// const API_BASE_URL = 'https://digibachat.onrender.com/api/auth';
+// const PASSWORD_API_BASE_URL = 'https://digibachat.onrender.com/api/password';
+// const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
+// const TRANSACTION_API_BASE_URL = 'https://digibachat.onrender.com/api/transactions';
+// const LOAN_API_BASE_URL = 'https://digibachat.onrender.com/api/loans';
 
-// const API_BASE_URL = 'http://localhost:5000/api/auth';
-// const PASSWORD_API_BASE_URL = 'http://localhost:5000/api/password';
-// const GROUP_API_BASE_URL = 'http://localhost:5000/api/groups';
-// const TRANSACTION_API_BASE_URL = 'http://localhost:5000/api/transactions';
+const API_BASE_URL = 'http://localhost:5000/api/auth';
+const PASSWORD_API_BASE_URL = 'http://localhost:5000/api/password';
+const GROUP_API_BASE_URL = 'http://localhost:5000/api/groups';
+const TRANSACTION_API_BASE_URL = 'http://localhost:5000/api/transactions';
+const LOAN_API_BASE_URL = 'http://localhost:5000/api/loans';
 
 export interface LoginData {
   email: string;
@@ -66,6 +68,22 @@ export interface GroupMember {
   status: 'approved' | 'pending';
   user_name: string;
   user_email: string;
+}
+
+export interface LoanRequest {
+  id: number;
+  user_id: number;
+  group_id: number;
+  amount: number;
+  purpose: string;
+  status: 'pending' | 'approved' | 'rejected' | 'repaid';
+  created_at: string;
+  due_date: string | null;
+  interest_rate: number | null;
+  penalty_amount: number | null;
+  repayment_status: 'not_started' | 'partial' | 'complete';
+  user_name?: string;
+  user_email?: string;
 }
 
 export interface CreateGroupData {
@@ -399,6 +417,59 @@ class ApiService {
     });
   }
 
+  // Loan endpoints
+  async createLoanRequest(groupId: string, loanData: { amount: number, purpose: string }): Promise<ApiResponse> {
+    return this.request<ApiResponse>(LOAN_API_BASE_URL, `/groups/${groupId}/loans`, {
+      method: 'POST',
+      body: JSON.stringify(loanData)
+    });
+  }
+
+  async getGroupLoanRequests(groupId: string): Promise<ApiResponse<{ loans: LoanRequest[] }>> {
+    return this.request<ApiResponse<{ loans: LoanRequest[] }>>(LOAN_API_BASE_URL, `/groups/${groupId}/loans`, {
+      method: 'GET'
+    });
+  }
+
+  async getUserLoanRequests(): Promise<ApiResponse<{ loans: LoanRequest[] }>> {
+    return this.request<ApiResponse<{ loans: LoanRequest[] }>>(LOAN_API_BASE_URL, `/user/loans`, {
+      method: 'GET'
+    });
+  }
+
+  async approveLoanRequest(groupId: string, loanId: string, approvalData: { due_date: string, interest_rate: number }): Promise<ApiResponse> {
+    return this.request<ApiResponse>(LOAN_API_BASE_URL, `/groups/${groupId}/loans/${loanId}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify(approvalData)
+    });
+  }
+
+  async rejectLoanRequest(groupId: string, loanId: string): Promise<ApiResponse> {
+    return this.request<ApiResponse>(LOAN_API_BASE_URL, `/groups/${groupId}/loans/${loanId}/reject`, {
+      method: 'PUT'
+    });
+  }
+
+  async makeLoanRepayment(loanId: string, repaymentData: { amount: number }): Promise<ApiResponse> {
+    return this.request<ApiResponse>(LOAN_API_BASE_URL, `/loans/${loanId}/repay`, {
+      method: 'POST',
+      body: JSON.stringify(repaymentData)
+    });
+  }
+
+  async applyLoanPenalty(groupId: string, loanId: string, penaltyData: { amount: number }): Promise<ApiResponse> {
+    return this.request<ApiResponse>(LOAN_API_BASE_URL, `/groups/${groupId}/loans/${loanId}/penalty`, {
+      method: 'PUT',
+      body: JSON.stringify(penaltyData)
+    });
+  }
+
+  async getOverdueLoans(groupId: string): Promise<ApiResponse<{ loans: LoanRequest[] }>> {
+    return this.request<ApiResponse<{ loans: LoanRequest[] }>>(LOAN_API_BASE_URL, `/groups/${groupId}/loans/overdue`, {
+      method: 'GET'
+    });
+  }
+
   async getUpcomingContributions(): Promise<ApiResponse> {
     return this.request<ApiResponse>(TRANSACTION_API_BASE_URL, `/user/upcoming-contributions`, {
       method: 'GET'
@@ -413,6 +484,12 @@ class ApiService {
 
   async getUserTotalSavings(): Promise<ApiResponse> {
     return this.request<ApiResponse>(TRANSACTION_API_BASE_URL, `/user/total-savings`, {
+      method: 'GET'
+    });
+  }
+
+  async getUserContributions(): Promise<ApiResponse> {
+    return this.request<ApiResponse>(TRANSACTION_API_BASE_URL, `/user/contributions`, {
       method: 'GET'
     });
   }

@@ -75,8 +75,8 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <Users className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+              <Users className="w-5 h-5 text-teal-600" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Group Members</h2>
@@ -95,7 +95,7 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
         <div className="overflow-y-auto max-h-96">
           {loading ? (
             <div className="flex justify-center items-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
             </div>
           ) : error ? (
             <div className="p-6 text-center">
@@ -123,11 +123,11 @@ const GroupMembersModal: React.FC<GroupMembersModalProps> = ({
                   {members.map((member) => (
                     <div
                       key={member.user_id}
-                      className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                      className="border border-gray-200 rounded-lg p-4 hover:border-teal-300 transition-colors"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+                          <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-medium">
                             {member.user_name ? member.user_name.charAt(0).toUpperCase() : '?'}
                           </div>
                           <div>

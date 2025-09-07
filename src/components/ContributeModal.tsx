@@ -82,8 +82,8 @@ const ContributeModal: React.FC<ContributeModalProps> = ({ onClose, onSubmit, am
               disabled={isProcessing}
               className={`w-full py-3 px-4 text-white font-medium rounded-lg ${
                 isProcessing
-                  ? 'bg-blue-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
+                  ? 'bg-teal-400 cursor-not-allowed'
+                  : 'bg-teal-600 hover:bg-teal-700'
               }`}
             >
               {isProcessing ? 'Processing...' : 'Proceed to Pay'}

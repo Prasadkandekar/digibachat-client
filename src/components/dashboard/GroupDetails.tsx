@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { UserPlus, Users, DollarSign } from 'lucide-react';
+import { UserPlus, Users, DollarSign, CreditCard } from 'lucide-react';
 import GroupSavings from './GroupSavings';
+import GroupLoans from './GroupLoans';
 
 interface Member {
   id: number;
@@ -29,7 +30,7 @@ interface GroupDetailsProps {
 }
 
 const GroupDetails: React.FC<GroupDetailsProps> = ({ group, members }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'savings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'savings' | 'loans'>('overview');
 
   const tabs = [
     {
@@ -43,6 +44,12 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({ group, members }) => {
       name: 'Group Savings',
       icon: DollarSign,
       description: 'Member contributions and totals'
+    },
+    {
+      id: 'loans' as const,
+      name: 'Loans',
+      icon: CreditCard,
+      description: 'Loan requests and management'
     }
   ];
 
@@ -145,6 +152,12 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({ group, members }) => {
           <GroupSavings 
             groupId={group.id} 
             groupName={group.name}
+          />
+        )}
+        {activeTab === 'loans' && (
+          <GroupLoans 
+            groupId={group.id} 
+            isLeader={members.some(member => member.role === 'leader' && member.status === 'approved')}
           />
         )}
       </div>
