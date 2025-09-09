@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { UserPlus, Users, DollarSign, CreditCard } from 'lucide-react';
+import { UserPlus, Users, DollarSign, CreditCard, Settings } from 'lucide-react';
 import GroupSavings from './GroupSavings';
 import GroupLoans from './GroupLoans';
+import UPISetupModal from '../UPISetupModal';
+import PendingUPIPayments from '../PendingUPIPayments';
 
 interface Member {
   id: number;
@@ -25,12 +27,18 @@ interface GroupDetailsProps {
     created_by: number;
     leader_name: string;
     leader_email: string;
+    leader_upi_id?: string;
+    leader_upi_name?: string;
   };
   members: Member[];
 }
 
 const GroupDetails: React.FC<GroupDetailsProps> = ({ group, members }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'savings' | 'loans'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'savings' | 'loans' | 'pending-payments'>('overview');
+  const [showUPISetup, setShowUPISetup] = useState(false);
+  
+  // Check if current user is a leader
+  const isLeader = members.some(member => member.role === 'leader' && member.status === 'approved');
 
   const tabs = [
     {
@@ -50,7 +58,13 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({ group, members }) => {
       name: 'Loans',
       icon: CreditCard,
       description: 'Loan requests and management'
-    }
+    },
+    ...(isLeader ? [{
+      id: 'pending-payments' as const,
+      name: 'Pending Payments',
+      icon: Settings,
+      description: 'UPI payments awaiting verification'
+    }] : [])
   ];
 
   return (
@@ -120,6 +134,33 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({ group, members }) => {
                   </span>
                 </div>
               </div>
+
+              {/* UPI Payment Setup */}
+              {isLeader && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-blue-700 font-medium">UPI Payment Setup</span>
+                    <button
+                      onClick={() => setShowUPISetup(true)}
+                      className="flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      {group.leader_upi_id ? 'Update' : 'Setup'} UPI
+                    </button>
+                  </div>
+                  {group.leader_upi_id ? (
+                    <div className="text-sm text-blue-800">
+                      <p>UPI ID: <span className="font-medium">{group.leader_upi_id}</span></p>
+                      <p>Display Name: <span className="font-medium">{group.leader_upi_name}</span></p>
+                      <p className="text-green-600 mt-1">✓ UPI payments enabled for group members</p>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-blue-800">
+                      <p>Setup UPI payment details to enable group members to make contributions via UPI.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {/* Members List */}
             <div>
@@ -160,7 +201,25 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({ group, members }) => {
             isLeader={members.some(member => member.role === 'leader' && member.status === 'approved')}
           />
         )}
+        {activeTab === 'pending-payments' && (
+          <PendingUPIPayments 
+            groupId={group.id.toString()} 
+            isLeader={isLeader}
+          />
+        )}
       </div>
+
+      {/* UPI Setup Modal */}
+      {showUPISetup && (
+        <UPISetupModal
+          onClose={() => setShowUPISetup(false)}
+          groupId={group.id.toString()}
+          onSuccess={() => {
+            // Refresh the page or update the group data
+            window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 };

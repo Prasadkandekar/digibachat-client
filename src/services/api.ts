@@ -1,15 +1,15 @@
 // src/services/api.ts
-const API_BASE_URL = 'https://digibachat.onrender.com/api/auth';
-const PASSWORD_API_BASE_URL = 'https://digibachat.onrender.com/api/password';
-const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
-const TRANSACTION_API_BASE_URL = 'https://digibachat.onrender.com/api/transactions';
-const LOAN_API_BASE_URL = 'https://digibachat.onrender.com/api/loans';
+// const API_BASE_URL = 'https://digibachat.onrender.com/api/auth';
+// const PASSWORD_API_BASE_URL = 'https://digibachat.onrender.com/api/password';
+// const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
+// const TRANSACTION_API_BASE_URL = 'https://digibachat.onrender.com/api/transactions';
+// const LOAN_API_BASE_URL = 'https://digibachat.onrender.com/api/loans';
 
-// const API_BASE_URL = 'http://localhost:5000/api/auth';
-// const PASSWORD_API_BASE_URL = 'http://localhost:5000/api/password';
-// const GROUP_API_BASE_URL = 'http://localhost:5000/api/groups';
-// const TRANSACTION_API_BASE_URL = 'http://localhost:5000/api/transactions';
-// const LOAN_API_BASE_URL = 'http://localhost:5000/api/loans';
+const API_BASE_URL = 'http://localhost:5000/api/auth';
+const PASSWORD_API_BASE_URL = 'http://localhost:5000/api/password';
+const GROUP_API_BASE_URL = 'http://localhost:5000/api/groups';
+const TRANSACTION_API_BASE_URL = 'http://localhost:5000/api/transactions';
+const LOAN_API_BASE_URL = 'http://localhost:5000/api/loans';
 
 export interface LoginData {
   email: string;
@@ -366,6 +366,32 @@ class ApiService {
     return this.request<ApiResponse>(GROUP_API_BASE_URL, `/${groupId}/contribute`, {
       method: 'POST',
       body: JSON.stringify({ paymentMethod })
+    });
+  }
+
+  // UPI Payment methods
+  async generateUPIPayment(groupId: string): Promise<ApiResponse> {
+    return this.request<ApiResponse>(TRANSACTION_API_BASE_URL, `/groups/${groupId}/upi-payment`, {
+      method: 'POST'
+    });
+  }
+
+  async verifyUPIPayment(transactionId: string): Promise<ApiResponse> {
+    return this.request<ApiResponse>(TRANSACTION_API_BASE_URL, `/transactions/${transactionId}/verify-upi`, {
+      method: 'GET'
+    });
+  }
+
+  async updateGroupUPIDetails(groupId: string, upiId: string, upiName: string): Promise<ApiResponse> {
+    return this.request<ApiResponse>(TRANSACTION_API_BASE_URL, `/groups/${groupId}/upi-details`, {
+      method: 'PUT',
+      body: JSON.stringify({ upiId, upiName })
+    });
+  }
+
+  async completeUPIPayment(transactionId: string): Promise<ApiResponse> {
+    return this.request<ApiResponse>(TRANSACTION_API_BASE_URL, `/transactions/${transactionId}/complete-upi`, {
+      method: 'POST'
     });
   }
 

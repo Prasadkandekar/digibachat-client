@@ -645,6 +645,7 @@ const DashboardHome: React.FC = () => {
           onSubmit={handleContribution}
           amount={selectedGroupForContribution.savings_amount}
           groupName={selectedGroupForContribution.name}
+          groupId={selectedGroupForContribution.id.toString()}
         />
       )}
 
