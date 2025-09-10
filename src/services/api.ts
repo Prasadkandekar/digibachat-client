@@ -1,15 +1,15 @@
 // src/services/api.ts
-// const API_BASE_URL = 'https://digibachat.onrender.com/api/auth';
-// const PASSWORD_API_BASE_URL = 'https://digibachat.onrender.com/api/password';
-// const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
-// const TRANSACTION_API_BASE_URL = 'https://digibachat.onrender.com/api/transactions';
-// const LOAN_API_BASE_URL = 'https://digibachat.onrender.com/api/loans';
+const API_BASE_URL = 'https://digibachat.onrender.com/api/auth';
+const PASSWORD_API_BASE_URL = 'https://digibachat.onrender.com/api/password';
+const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
+const TRANSACTION_API_BASE_URL = 'https://digibachat.onrender.com/api/transactions';
+const LOAN_API_BASE_URL = 'https://digibachat.onrender.com/api/loans';
 
-const API_BASE_URL = 'http://localhost:5000/api/auth';
-const PASSWORD_API_BASE_URL = 'http://localhost:5000/api/password';
-const GROUP_API_BASE_URL = 'http://localhost:5000/api/groups';
-const TRANSACTION_API_BASE_URL = 'http://localhost:5000/api/transactions';
-const LOAN_API_BASE_URL = 'http://localhost:5000/api/loans';
+// const API_BASE_URL = 'http://localhost:5000/api/auth';
+// const PASSWORD_API_BASE_URL = 'http://localhost:5000/api/password';
+// const GROUP_API_BASE_URL = 'http://localhost:5000/api/groups';
+// const TRANSACTION_API_BASE_URL = 'http://localhost:5000/api/transactions';
+// const LOAN_API_BASE_URL = 'http://localhost:5000/api/loans';
 
 export interface LoginData {
   email: string;

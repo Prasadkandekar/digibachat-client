@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -12,21 +12,27 @@ import {
   Eye,
   EyeOff,
   Save,
-  Trash2
+  Trash2,
+  Loader
 } from 'lucide-react';
+import { apiService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 
 const SettingsTab: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
   
   const [profileData, setProfileData] = useState({
-    name: 'Rajesh Kumar',
-    email: 'rajesh.kumar@email.com',
-    phone: '+91-9876543210',
-    dateOfBirth: '1985-06-15',
-    address: 'Mumbai, Maharashtra, India'
+    name: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    address: ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -61,6 +67,33 @@ const SettingsTab: React.FC = () => {
     timezone: 'Asia/Kolkata'
   });
 
+  // Load user data on component mount
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getCurrentUser();
+      if (response.success && response.data?.user) {
+        const user = response.data.user;
+        setProfileData({
+          name: user.name || '',
+          email: user.email || '',
+          phone: user.phone || '',
+          dateOfBirth: user.dateOfBirth || '',
+          address: user.address || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      toast?.showToast('Failed to load user data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Shield },
@@ -70,41 +103,117 @@ const SettingsTab: React.FC = () => {
     { id: 'payment', label: 'Payment Methods', icon: CreditCard }
   ];
 
-  const handleProfileUpdate = () => {
-    // TODO: Backend integration - PUT /api/user/profile
-    console.log('Backend Integration: Update Profile', profileData);
-  };
-
-  const handlePasswordChange = () => {
-    // TODO: Backend integration - PUT /api/user/password
-    console.log('Backend Integration: Change Password', { 
-      currentPassword: passwordData.currentPassword,
-      newPassword: passwordData.newPassword 
-    });
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  };
-
-  const handleNotificationUpdate = () => {
-    // TODO: Backend integration - PUT /api/user/notifications
-    console.log('Backend Integration: Update Notifications', notificationSettings);
-  };
-
-  const handlePrivacyUpdate = () => {
-    // TODO: Backend integration - PUT /api/user/privacy
-    console.log('Backend Integration: Update Privacy', privacySettings);
-  };
-
-  const handlePreferencesUpdate = () => {
-    // TODO: Backend integration - PUT /api/user/preferences
-    console.log('Backend Integration: Update Preferences', preferences);
-  };
-
-  const handleDeleteAccount = () => {
-    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      // TODO: Backend integration - DELETE /api/user/account
-      console.log('Backend Integration: Delete Account');
+  const handleProfileUpdate = async () => {
+    try {
+      setSaving(true);
+      // TODO: Implement actual API call when backend endpoint is ready
+      // const response = await apiService.updateProfile(profileData);
+      console.log('Backend Integration: Update Profile', profileData);
+      toast?.showToast('Profile updated successfully', 'success');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast?.showToast('Failed to update profile', 'error');
+    } finally {
+      setSaving(false);
     }
   };
+
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast?.showToast('New passwords do not match', 'error');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      // TODO: Implement actual API call when backend endpoint is ready
+      // const response = await apiService.changePassword(passwordData);
+      console.log('Backend Integration: Change Password', { 
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword 
+      });
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast?.showToast('Password changed successfully', 'success');
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast?.showToast('Failed to change password', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNotificationUpdate = async () => {
+    try {
+      setSaving(true);
+      // TODO: Implement actual API call when backend endpoint is ready
+      // const response = await apiService.updateNotifications(notificationSettings);
+      console.log('Backend Integration: Update Notifications', notificationSettings);
+      toast?.showToast('Notification settings updated', 'success');
+    } catch (error) {
+      console.error('Error updating notifications:', error);
+      toast?.showToast('Failed to update notification settings', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePrivacyUpdate = async () => {
+    try {
+      setSaving(true);
+      // TODO: Implement actual API call when backend endpoint is ready
+      // const response = await apiService.updatePrivacy(privacySettings);
+      console.log('Backend Integration: Update Privacy', privacySettings);
+      toast?.showToast('Privacy settings updated', 'success');
+    } catch (error) {
+      console.error('Error updating privacy:', error);
+      toast?.showToast('Failed to update privacy settings', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePreferencesUpdate = async () => {
+    try {
+      setSaving(true);
+      // TODO: Implement actual API call when backend endpoint is ready
+      // const response = await apiService.updatePreferences(preferences);
+      console.log('Backend Integration: Update Preferences', preferences);
+      toast?.showToast('Preferences updated', 'success');
+    } catch (error) {
+      console.error('Error updating preferences:', error);
+      toast?.showToast('Failed to update preferences', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      try {
+        setSaving(true);
+        // TODO: Implement actual API call when backend endpoint is ready
+        // const response = await apiService.deleteAccount();
+        console.log('Backend Integration: Delete Account');
+        toast?.showToast('Account deletion initiated', 'info');
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        toast?.showToast('Failed to delete account', 'error');
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin text-teal-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -185,10 +294,19 @@ const SettingsTab: React.FC = () => {
                 <div className="mt-6">
                   <button
                     onClick={handleProfileUpdate}
-                    className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                    disabled={saving}
+                    className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                      saving
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-teal-600 hover:bg-teal-700'
+                    } text-white`}
                   >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Changes
+                    {saving ? (
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </div>

@@ -42,6 +42,8 @@ import GroupHistoryModal from '../GroupHistoryModal';
 import InviteMembersModal from '../InviteMembersModal';
 import { useToast } from '../../contexts/ToastContext';
 import { apiService } from '../../services/api';
+import DashboardHeader from './DashboardHeader';
+import SettingsTab from './SettingsTab';
 
 const DashboardHome: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -61,6 +63,7 @@ const DashboardHome: React.FC = () => {
   const [userContributions, setUserContributions] = useState<{[key: string]: number}>({});
   const [activeLoanHolders, setActiveLoanHolders] = useState<{[key: string]: string}>({});
   const [pendingLoanRequests, setPendingLoanRequests] = useState<{[key: string]: any[]}>({});
+  const [showSettings, setShowSettings] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -301,6 +304,11 @@ const DashboardHome: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    apiService.logout();
+    window.location.href = '/';
+  };
+
 
   const handleContribution = async (paymentMethod: string) => {
     if (!selectedGroupForContribution) return;
@@ -329,14 +337,37 @@ const DashboardHome: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {userName ? `Welcome back, ${userName}!` : 'Savings Dashboard'}
-        </h1>
-        <p className="text-gray-600">Manage your savings groups and track your progress</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Dashboard Header */}
+      <DashboardHeader 
+        onLogout={handleLogout}
+        onSettingsClick={() => setShowSettings(true)}
+      />
+
+      {showSettings ? (
+        <div className="p-6">
+          <div className="mb-6">
+            <button
+              onClick={() => setShowSettings(false)}
+              className="flex items-center text-gray-600 hover:text-teal-600 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Dashboard
+            </button>
+          </div>
+          <SettingsTab />
+        </div>
+      ) : (
+        <div className="p-6">
+          {/* Welcome Message */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-gray-900">
+              {userName ? `Welcome back, ${userName}!` : 'Savings Dashboard'}
+            </h1>
+            <p className="text-gray-600">Manage your savings groups and track your progress</p>
+          </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -687,6 +718,8 @@ const DashboardHome: React.FC = () => {
           groupName={selectedGroupForModal.name}
           groupCode={selectedGroupForModal.group_code}
         />
+      )}
+        </div>
       )}
     </div>
   );
