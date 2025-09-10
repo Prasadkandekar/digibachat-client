@@ -54,9 +54,9 @@ const AboutSection: React.FC = () => {
           
           <div className="flex justify-center">
             {/* Community illustration */}
-            <img src="/images/group.png" alt="Community savings group" className="w-full h-full object-cover" />
+            <img src="https://res.cloudinary.com/dmkttlnh5/image/upload/v1757529785/group_uqrlpw.png" alt="Community savings group" className="w-full h-full object-cover" />
           </div>
-        </div>
+        </div>  
       </div>
     </section>
   );

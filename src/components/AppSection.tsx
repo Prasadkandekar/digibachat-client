@@ -61,7 +61,7 @@ const AppSection: React.FC = () => {
           </div>
           
           <div className="flex justify-center">
-            <img src="/images/landing.png" alt="App Image" className="w-full h-full object-cover" />
+            <img src="https://res.cloudinary.com/dmkttlnh5/image/upload/v1757529783/landing_v4rwzn.png" alt="App Image" className="w-full h-full object-cover" />
           </div>
         </div>
       </div>

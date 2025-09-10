@@ -37,7 +37,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           </div>
           
           <div className="flex justify-center lg:justify-end">
-          <img src="/images/logo.png" alt="Hero Image" className="w-full h-full object-cover" />
+          <img src="https://res.cloudinary.com/dmkttlnh5/image/upload/v1757529782/logo_jwccos.png" alt="Hero Image" className="w-full h-full object-cover" />
           </div>
         </div>
       </div>
