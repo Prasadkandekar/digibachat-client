@@ -67,7 +67,7 @@ const ContributeModal: React.FC<ContributeModalProps> = ({ onClose, onSubmit, am
     const interval = setInterval(async () => {
       try {
         const response = await apiService.request(
-          'http://localhost:5000/api/transactions',
+          'https://digibachat.onrender.com/api/transactions',
           `/transactions/${transactionId}/verify-upi`,
           { method: 'GET' }
         );
