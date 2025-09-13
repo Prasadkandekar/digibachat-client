@@ -43,7 +43,7 @@ const ContributeModal: React.FC<ContributeModalProps> = ({ onClose, onSubmit, am
       setError('');
       
       const response = await apiService.request(
-        'http://localhost:5000/api/transactions',
+        'https://digibachat.onrender.com/api/transactions',
         `/groups/${groupId}/upi-payment`,
         { method: 'POST' }
       );
