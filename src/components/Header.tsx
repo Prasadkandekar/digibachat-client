@@ -15,6 +15,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated, onSignIn, onSignUp, on
     { name: 'Home', href: '#', active: true },
     { name: 'About', href: '#about', active: false },
     { name: 'Features', href: '#features', active: false },
+    { name: 'Pricing', href: '#pricing', active: false },
     { name: 'Contact', href: '#contact', active: false },
   ];
 
@@ -24,9 +25,16 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated, onSignIn, onSignUp, on
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Digi <span className="text-gray-700">बचत</span>
-            </h1>
+            <a href="#" className="flex items-center space-x-2">
+              <img 
+                src="https://res.cloudinary.com/dmkttlnh5/image/upload/v1757529782/logo_jwccos.png"
+                alt="DigiBachat Logo"
+                className="h-10 w-auto"
+              />
+              <h1 className="text-2xl font-bold text-gray-900 hidden sm:inline-block">
+                Digi <span className="text-gray-700">बचत</span>
+              </h1>
+            </a>
           </div>
 
           {/* Desktop Navigation */}

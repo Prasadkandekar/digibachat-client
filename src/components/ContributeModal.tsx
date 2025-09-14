@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, QrCode, Copy, ExternalLink, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { X, Copy, ExternalLink, CheckCircle,  AlertCircle } from 'lucide-react';
 import { apiService } from '../services/api';
 
 interface ContributeModalProps {
@@ -30,6 +30,7 @@ const ContributeModal: React.FC<ContributeModalProps> = ({ onClose, onSubmit, am
   const [copied, setCopied] = useState(false);
   const [verificationInterval, setVerificationInterval] = useState<NodeJS.Timeout | null>(null);
   const [showPaymentCompleted, setShowPaymentCompleted] = useState(false);
+  const [manualUpiId, setManualUpiId] = useState('');
 
   const paymentMethods = [
     { id: 'upi', name: 'UPI', icon: '📱' },
@@ -108,23 +109,24 @@ const ContributeModal: React.FC<ContributeModalProps> = ({ onClose, onSubmit, am
     }
   };
 
-  // Open UPI app
-  const openUPIApp = () => {
-    if (upiPaymentData?.upiLink) {
-      window.open(upiPaymentData.upiLink, '_blank');
-    }
-  };
-
   // Handle manual payment completion
   const handlePaymentCompleted = async () => {
     if (!upiPaymentData) return;
+    
+    if (!manualUpiId.trim()) {
+      setError('Please enter the UPI transaction ID');
+      return;
+    }
     
     try {
       setIsProcessing(true);
       setError('');
       
-      // Call the complete payment API
-      const response = await apiService.completeUPIPayment(upiPaymentData.transactionId.toString());
+      // Call the complete payment API with manual UPI ID
+      const response = await apiService.completeUPIPayment(
+        upiPaymentData.transactionId.toString(),
+        { upiTransactionId: manualUpiId.trim() }
+      );
       
       if (response.success) {
         setPaymentStatus('completed');
@@ -199,209 +201,122 @@ const ContributeModal: React.FC<ContributeModalProps> = ({ onClose, onSubmit, am
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-2xl font-semibold mb-4">Make Contribution</h2>
-        <p className="text-gray-600 mb-6">
-          Contributing ₹{amount} to {groupName}
-        </p>
+        <h2 className="text-2xl font-bold mb-6 text-center">Contribute to {groupName}</h2>
 
-        {!upiPaymentData ? (
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Payment Method
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  {paymentMethods.map((method) => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => setSelectedMethod(method.id)}
-                      className={`p-4 border rounded-lg text-center ${
-                        selectedMethod === method.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="text-2xl mb-2 block">{method.icon}</span>
-                      <span className="block text-sm font-medium">{method.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+        <div className="space-y-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="font-medium text-blue-800">Contribution Amount: ₹{amount}</h3>
+          </div>
 
-              {error && (
-                <div className="text-red-600 text-sm mt-2 flex items-center">
-                  <AlertCircle className="w-4 h-4 mr-2" />
-                  {error}
-                </div>
-              )}
-
+          {/* UPI Payment Flow */}
+          {selectedMethod === 'upi' && paymentStatus === 'pending' && !upiPaymentData && (
+            <div className="space-y-4 mt-4">
               <button
-                type="submit"
+                type="button"
+                onClick={generateUPIPayment}
                 disabled={isProcessing}
-                className={`w-full py-3 px-4 text-white font-medium rounded-lg ${
-                  isProcessing
-                    ? 'bg-teal-400 cursor-not-allowed'
-                    : 'bg-teal-600 hover:bg-teal-700'
-                }`}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                  isProcessing ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
               >
-                {isProcessing ? 'Processing...' : 'Proceed to Pay'}
+                {isProcessing ? 'Generating UPI...' : 'Pay via UPI'}
               </button>
+              <p className="text-xs text-gray-500 text-center">Click to generate a UPI QR code and payment link.</p>
             </div>
-          </form>
-        ) : (
-          <div className="space-y-6">
-            {/* Payment Status */}
-            <div className="text-center">
-              {paymentStatus === 'initiated' && (
-                <div className="flex items-center justify-center text-blue-600 mb-2">
-                  <Clock className="w-5 h-5 mr-2 animate-spin" />
-                  <span className="font-medium">Payment Initiated</span>
-                </div>
-              )}
-              {paymentStatus === 'completed' && (
-                <div className="flex items-center justify-center text-green-600 mb-2">
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  <span className="font-medium">Payment Completed!</span>
-                </div>
-              )}
-              {paymentStatus === 'failed' && (
-                <div className="flex items-center justify-center text-red-600 mb-2">
-                  <AlertCircle className="w-5 h-5 mr-2" />
-                  <span className="font-medium">Payment Failed</span>
-                </div>
-              )}
-            </div>
+          )}
 
-            {/* UPI Payment Details */}
-            <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-              <div className="text-center">
-                <h3 className="font-semibold text-lg mb-2">UPI Payment</h3>
-                <p className="text-2xl font-bold text-teal-600">₹{upiPaymentData.amount}</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Pay to: {upiPaymentData.leaderName}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {upiPaymentData.note}
-                </p>
-              </div>
-
-              {/* QR Code */}
-              <div className="flex justify-center">
-                <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
-                  <img 
-                    src={upiPaymentData.qrCode} 
-                    alt="UPI QR Code" 
-                    className="w-48 h-48"
+          {/* Show QR code and UPI link after generation */}
+          {selectedMethod === 'upi' && upiPaymentData && paymentStatus === 'initiated' && (
+            <div className="space-y-4 mt-4">
+              <h3 className="text-lg font-medium mb-2 text-center">Scan & Pay via UPI</h3>
+              <div className="flex flex-col items-center">
+                {upiPaymentData.qrCode && (
+                  <img
+                    src={upiPaymentData.qrCode}
+                    alt="UPI QR Code"
+                    className="w-40 h-40 object-contain border rounded mb-2"
                   />
-                </div>
-              </div>
-
-              {/* UPI Link */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  UPI Payment Link
-                </label>
-                <div className="flex items-center space-x-2">
+                )}
+                <div className="flex items-center space-x-2 mb-2">
                   <input
                     type="text"
                     value={upiPaymentData.upiLink}
                     readOnly
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
                   />
                   <button
                     onClick={copyUPILink}
-                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                    className="p-1 bg-gray-100 rounded hover:bg-gray-200"
                   >
-                    {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                   </button>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <div className="flex space-x-3">
-                  <button
-                    onClick={openUPIApp}
-                    className="flex-1 bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 flex items-center justify-center"
+                  <a
+                    href={upiPaymentData.upiLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1 bg-gray-100 rounded hover:bg-gray-200"
                   >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open UPI App
-                  </button>
-                  <button
-                    onClick={() => {
-                      setUpiPaymentData(null);
-                      setPaymentStatus('pending');
-                      if (verificationInterval) {
-                        clearInterval(verificationInterval);
-                        setVerificationInterval(null);
-                      }
-                    }}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
                 </div>
-                
-                {/* Payment Completed Button */}
-                {paymentStatus === 'initiated' && (
-                  <div className="text-center">
-                    {showPaymentCompleted ? (
-                      <div className="space-y-2">
-                        <button
-                          onClick={handlePaymentCompleted}
-                          disabled={isProcessing}
-                          className={`w-full py-3 px-4 text-white font-medium rounded-lg ${
-                            isProcessing
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-green-600 hover:bg-green-700'
-                          }`}
-                        >
-                          {isProcessing ? 'Processing...' : '✓ I Have Completed the Payment'}
-                        </button>
-                        <p className="text-xs text-gray-500">
-                          Click this button after completing the payment in your UPI app
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-gray-600 mb-2">
-                          Complete the payment in your UPI app, then return here
-                        </p>
-                        <div className="flex items-center justify-center space-x-2 text-xs text-gray-500">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                          <span>Waiting for payment completion...</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <p className="text-xs text-gray-500 text-center">Scan the QR code or use the UPI link to pay.</p>
               </div>
-
-              {/* Instructions */}
-              <div className="text-xs text-gray-600 bg-blue-50 p-3 rounded-lg">
-                <p className="font-medium mb-1">How to pay:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Scan the QR code with your UPI app</li>
-                  <li>Or click "Open UPI App" to pay directly</li>
-                  <li>Or copy the UPI link and paste in your UPI app</li>
-                  <li>Complete the payment in your UPI app</li>
-                  <li>Click "I Have Completed the Payment" button</li>
-                  <li>Group leader will verify and confirm the payment</li>
-                </ol>
+              {/* Show transaction ID input after payment */}
+              <div className="mt-4">
+                <h3 className="text-md font-medium mb-2">Enter UPI Transaction ID</h3>
+                <input
+                  type="text"
+                  id="manualUpiId"
+                  value={manualUpiId}
+                  onChange={(e) => setManualUpiId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter UPI transaction ID"
+                  disabled={isProcessing}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  After payment, enter the UPI transaction ID from your payment app. The group leader will verify this transaction.
+                </p>
+                <button
+                  type="button"
+                  onClick={handlePaymentCompleted}
+                  disabled={isProcessing || !manualUpiId.trim()}
+                  className={`w-full flex justify-center py-2 px-4 mt-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    isProcessing || !manualUpiId.trim()
+                      ? 'bg-blue-300 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                >
+                  {isProcessing ? 'Submitting...' : 'Submit Transaction ID'}
+                </button>
               </div>
-
-              {/* Payment Status Info */}
-              {paymentStatus === 'initiated' && (
-                <div className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg">
-                  <p className="font-medium mb-1">Payment Status:</p>
-                  <p>Payment initiated. After completing the payment in your UPI app, the group leader will verify and confirm the payment.</p>
-                </div>
-              )}
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Payment completed message */}
+          {paymentStatus === 'completed' && (
+            <div className="text-center py-4">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+              <h3 className="text-lg font-medium text-green-700 mb-1">Payment Submitted for Verification</h3>
+              <p className="text-sm text-gray-600">
+                Your transaction ID has been submitted. The group leader will verify your payment shortly.
+              </p>
+            </div>
+          )}
+
+          {/* Error message */}
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

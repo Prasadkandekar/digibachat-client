@@ -148,7 +148,7 @@ export interface JoinGroupResponseData {
 }
 
 class ApiService {
-  private async request<T extends ApiResponse>(
+   async request<T extends ApiResponse>(
     baseUrl: string,
     endpoint: string,
     options: RequestInit = {}
@@ -396,9 +396,10 @@ class ApiService {
     });
   }
 
-  async completeUPIPayment(transactionId: string): Promise<ApiResponse> {
+  async completeUPIPayment(transactionId: string, data?: { upiTransactionId: string }): Promise<ApiResponse> {
     return this.request<ApiResponse>(TRANSACTION_API_BASE_URL, `/transactions/${transactionId}/complete-upi`, {
-      method: 'POST'
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined
     });
   }
 

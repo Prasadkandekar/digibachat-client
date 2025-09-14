@@ -1,5 +1,6 @@
 import React from 'react';
-import { Download, UserPlus } from 'lucide-react';
+import { UserPlus, Download } from 'lucide-react';
+import { downloadAPK } from '../utils/downloadHelpers';
 
 interface HeroSectionProps {
   onSignIn: () => void;
@@ -22,7 +23,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
               journey — All in one app.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="flex items-center justify-center px-8 py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium">
+              <button 
+                onClick={downloadAPK}
+                className="flex items-center justify-center px-8 py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium"
+              >
                 <Download className="w-5 h-5 mr-2" />
                 Download the App
               </button>

@@ -1,5 +1,7 @@
 import React from 'react';
-import { Apple, Play, Check, Star } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
+import AppDownloadButtons from './AppDownloadButtons';
+import SmartphoneSlider from './SmartphoneSlider';
 
 const AppSection: React.FC = () => {
   const features = [
@@ -33,21 +35,8 @@ const AppSection: React.FC = () => {
               ))}
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <button className="flex items-center justify-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
-                <Apple className="w-6 h-6 mr-3" />
-                <div className="text-left">
-                  <div className="text-xs">Download on the</div>
-                  <div className="text-sm font-semibold">App Store</div>
-                </div>
-              </button>
-              <button className="flex items-center justify-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
-                <Play className="w-6 h-6 mr-3" />
-                <div className="text-left">
-                  <div className="text-xs">Get it on</div>
-                  <div className="text-sm font-semibold">Google Play</div>
-                </div>
-              </button>
+            <div className="mb-8">
+              <AppDownloadButtons variant="store" />
             </div>
             
             <div className="flex items-center">
@@ -60,8 +49,8 @@ const AppSection: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex justify-center">
-            <img src="https://res.cloudinary.com/dmkttlnh5/image/upload/v1757529783/landing_v4rwzn.png" alt="App Image" className="w-full h-full object-cover" />
+          <div className="flex justify-center items-center">
+            <SmartphoneSlider />
           </div>
         </div>
       </div>
