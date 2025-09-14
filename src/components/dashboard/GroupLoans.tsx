@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, AlertCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { IndianRupee , AlertCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { LoanRequest } from '../../services/api';
 import LoanRequestModal from '../LoanRequestModal';
@@ -136,7 +136,7 @@ const GroupLoans: React.FC<GroupLoansProps> = ({ groupId, isLeader }) => {
           onClick={() => setShowRequestModal(true)}
           className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
         >
-          <DollarSign className="w-4 h-4 mr-1" />
+          <IndianRupee  className="w-4 h-4 mr-1" />
           Request Loan
         </button>
       </div>
@@ -154,7 +154,7 @@ const GroupLoans: React.FC<GroupLoansProps> = ({ groupId, isLeader }) => {
         </div>
       ) : loans.length === 0 ? (
         <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
-          <DollarSign className="w-12 h-12 mx-auto text-gray-400" />
+          <IndianRupee  className="w-12 h-12 mx-auto text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No loans</h3>
           <p className="mt-1 text-sm text-gray-500">Get started by requesting a loan.</p>
         </div>
@@ -195,7 +195,7 @@ const GroupLoans: React.FC<GroupLoansProps> = ({ groupId, isLeader }) => {
                     {loan.user_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${loan.amount ? Number(loan.amount).toFixed(2) : '0.00'}
+                   ₹ {loan.amount ? Number(loan.amount).toFixed(2) : '0.00'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {loan.purpose}

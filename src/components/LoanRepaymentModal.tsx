@@ -86,7 +86,7 @@ const LoanRepaymentModal: React.FC<LoanRepaymentModalProps> = ({ loan, onClose, 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Principal Amount:</span>
-                <p className="font-medium">${(typeof loan.amount === 'string' ? parseFloat(loan.amount) : loan.amount).toFixed(2)}</p>
+                <p className="font-medium">₹{(typeof loan.amount === 'string' ? parseFloat(loan.amount) : loan.amount).toFixed(2)}</p>
               </div>
               {loan.interest_rate && (
                 <div>
@@ -103,7 +103,7 @@ const LoanRepaymentModal: React.FC<LoanRepaymentModalProps> = ({ loan, onClose, 
               {loan.penalty_amount && loan.penalty_amount > 0 && (
                 <div>
                   <span className="text-gray-500">Penalty Amount:</span>
-                  <p className="font-medium text-red-600">${loan.penalty_amount.toFixed(2)}</p>
+                  <p className="font-medium text-red-600">₹{loan.penalty_amount.toFixed(2)}</p>
                 </div>
               )}
               <div className="col-span-2">
@@ -117,7 +117,7 @@ const LoanRepaymentModal: React.FC<LoanRepaymentModalProps> = ({ loan, onClose, 
               {remainingAmount > 0 && (
                 <div className="col-span-2 pt-2">
                   <span className="text-gray-500">Remaining Amount:</span>
-                  <p className="font-medium text-lg">${remainingAmount.toFixed(2)}</p>
+                  <p className="font-medium text-lg">₹{remainingAmount.toFixed(2)}</p>
                 </div>
               )}
             </div>

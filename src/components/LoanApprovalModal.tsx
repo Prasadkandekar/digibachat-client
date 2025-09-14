@@ -106,7 +106,7 @@ const LoanApprovalModal: React.FC<LoanApprovalModalProps> = ({ groupId, loan, on
               </div>
               <div>
                 <span className="text-gray-500">Amount:</span>
-                <p className="font-medium">${loan.amount.toFixed(2)}</p>
+                <p className="font-medium">₹{loan.amount.toFixed(2)}</p>
               </div>
               <div className="col-span-2">
                 <span className="text-gray-500">Purpose:</span>

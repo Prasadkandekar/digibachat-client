@@ -5,11 +5,7 @@ const GROUP_API_BASE_URL = 'https://digibachat.onrender.com/api/groups';
 const TRANSACTION_API_BASE_URL = 'https://digibachat.onrender.com/api/transactions';
 const LOAN_API_BASE_URL = 'https://digibachat.onrender.com/api/loans';
 
-// const API_BASE_URL = 'https://digibachat-server.appwrite.network/api/auth';
-// const PASSWORD_API_BASE_URL = 'https://digibachat-server.appwrite.network/api/password';
-// const GROUP_API_BASE_URL = 'https://digibachat-server.appwrite.network/api/groups';
-// const TRANSACTION_API_BASE_URL = 'https://digibachat-server.appwrite.network/api/transactions';
-// const LOAN_API_BASE_URL = 'https://digibachat-server.appwrite.network/api/loans';
+
 
 
 // const API_BASE_URL = 'http://localhost:5000/api/auth';
