@@ -63,8 +63,8 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="text-lg font-semibold text-white mb-4">Contact</h4>
             <div className="space-y-2 text-gray-400">
-              <p>support@digibachat.com</p>
-              <p>+91-1800-123-4567</p>
+              <p>digibachat@gmail.com</p>
+              <p>+917620753172</p>
             </div>
             
             {/* Social Links */}

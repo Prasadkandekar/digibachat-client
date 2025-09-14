@@ -22,7 +22,7 @@ const PricingSection: React.FC = () => {
     },
     {
       name: 'Plus',
-      price: '₹50',
+      price: '₹49',
       period: '/group/month',
       description: 'Ideal for growing savings groups',
       features: [
