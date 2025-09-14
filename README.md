@@ -1,6 +1,7 @@
-# DigiBachat Landing Page
+# DigiBachat - Digital Group Savings Application (Frontend)
 
-A clean, modern, and community-focused landing page designed to attract first-time visitors and encourage them to download the DigiBachat app or sign up for the service.
+## Overview
+DigiBachat is a digital-first platform designed to modernize group savings and lending practices. The application facilitates the creation and management of savings groups, secure UPI payments, and transparent loan management.
 
 ## 🎯 Project Overview
 
@@ -35,6 +36,11 @@ DigiBachat is a digital platform that empowers communities to save together and 
 
 ## 🛠️ Technologies Used
 
+- **React.js**: Frontend framework for building user interfaces
+-**Typescript**:React uses type script by default
+- **Node.js**: Runtime environment for backend development
+- **Express.js**: Web application framework for Node.js
+- **PostgreSQL**: Open-source relational database
 - **HTML5**: Semantic markup and modern structure
 - **CSS3**: Flexbox, Grid, animations, and responsive design
 - **JavaScript (ES6+)**: Modern JavaScript with ES6+ features
@@ -175,14 +181,6 @@ DigiBachat/
 - **First Contentful Paint**: < 1.5s
 - **Largest Contentful Paint**: < 2.5s
 - **Cumulative Layout Shift**: < 0.1
-
-## 🤝 Contributing
-
-1. Fork the project
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly on multiple devices
-5. Submit a pull request
 
 ## 📄 License
 
